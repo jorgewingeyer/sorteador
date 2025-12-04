@@ -10,11 +10,25 @@ createServer((page) =>
         page,
         render: ReactDOMServer.renderToString,
         title: (title) => (title ? `${title} - ${appName}` : appName),
-        resolve: (name) =>
-            resolvePageComponent(
+        resolve: (name) => {
+            const pages = import.meta.glob('./pages/**/*.tsx');
+            const segments = String(name).split('/');
+            const last = segments[segments.length - 1] ?? name;
+            const candidates = [
                 `./pages/${name}.tsx`,
-                import.meta.glob('./pages/**/*.tsx'),
-            ),
+                `./pages/${name}/index.tsx`,
+                `./pages/${last}.tsx`,
+                `./pages/${last}/index.tsx`,
+            ];
+
+            for (const path of candidates) {
+                if (path in pages) {
+                    return resolvePageComponent(path, pages);
+                }
+            }
+
+            return resolvePageComponent(`./pages/${name}.tsx`, pages);
+        },
         setup: ({ App, props }) => {
             return <App {...props} />;
         },

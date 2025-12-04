@@ -1,19 +1,24 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ParticipantesController;
+use App\Http\Controllers\SorteoController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
-Route::get('/', function () {
-    return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // Sorteos
+    Route::get('sorteo', [SorteoController::class, 'index'])->name('sorteo');
+    Route::post('sorteo', [SorteoController::class, 'store'])->name('sorteo.store');
+    Route::get('sorteo/list', [SorteoController::class, 'list'])->name('sorteo.list');
+
+    // Participantes
+    Route::get('participantes', [ParticipantesController::class, 'index'])->name('participantes');
+    Route::post('participantes/import', [ParticipantesController::class, 'import'])->name('participantes.import');
+    Route::get('participantes/list', [ParticipantesController::class, 'list'])->name('participantes.list');
 });
 
 require __DIR__.'/settings.php';

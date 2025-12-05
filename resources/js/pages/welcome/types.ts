@@ -9,7 +9,7 @@ export interface Participante {
 }
 
 export interface WinnerResult {
-    winner: Participante & { ganador_en?: number };
+    winner: Participante & { ganador_en?: number; premio?: string };
     total_participants: number;
     available_participants: number;
     previous_winners: number;

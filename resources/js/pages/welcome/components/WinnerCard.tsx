@@ -76,6 +76,9 @@ export function WinnerCard({ winner }: WinnerCardProps) {
                         {winner.winner.province && (
                             <InfoItem label="Provincia" value={winner.winner.province} />
                         )}
+                        {winner.winner.premio && (
+                            <InfoItem label="Premio" value={winner.winner.premio} />
+                        )}
                     </div>
                 </div>
                 

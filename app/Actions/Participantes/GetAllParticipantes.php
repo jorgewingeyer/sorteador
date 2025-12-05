@@ -25,37 +25,61 @@ abstract class GetAllParticipantes extends Action
             $direction = strtolower((string) ($options['direction'] ?? 'desc'));
 
             $allowedSorts = ['created_at', 'full_name', 'dni', 'carton_number', 'sorteo_id'];
-            if (! in_array($sort, $allowedSorts, true)) {
+            if (!in_array($sort, $allowedSorts, true)) {
                 $sort = 'created_at';
             }
-            if (! in_array($direction, ['asc', 'desc'], true)) {
+            if (!in_array($direction, ['asc', 'desc'], true)) {
                 $direction = 'desc';
             }
 
             $query = Participante::query()
-                ->select(['id', 'sorteo_id', 'full_name', 'dni', 'phone', 'location', 'province', 'carton_number', 'created_at'])
+                ->select(['id', 'sorteo_id', 'full_name', 'dni', 'phone', 'location', 'province', 'carton_number', 'created_at', 'ganador_en'])
                 ->with(['sorteo:id,nombre']);
 
-            if (! empty($options['q'])) {
+            if (!empty($options['q'])) {
                 $q = (string) $options['q'];
                 $query->where(function ($w) use ($q) {
-                    $w->where('full_name', 'ilike', '%'.$q.'%')
-                        ->orWhere('dni', 'like', '%'.$q.'%')
-                        ->orWhere('carton_number', 'like', '%'.$q.'%');
+                    $w->where('full_name', 'ilike', '%' . $q . '%')
+                        ->orWhere('dni', 'like', '%' . $q . '%')
+                        ->orWhere('carton_number', 'like', '%' . $q . '%');
                 });
             }
 
-            if (! empty($options['sorteo_id'])) {
+            if (!empty($options['sorteo_id'])) {
                 $query->where('sorteo_id', (int) $options['sorteo_id']);
             }
 
-            if (! empty($options['province'])) {
+            if (!empty($options['province'])) {
                 $query->where('province', (string) $options['province']);
+            }
+
+            // Filtro por estado de ganador
+            if (!empty($options['ganador_status'])) {
+                $status = (string) $options['ganador_status'];
+
+                // DEBUG: Log para verificar que el filtro se está aplicando
+                Log::info('Filtro ganador_status aplicado', [
+                    'status' => $status,
+                    'count_before' => $query->count(),
+                ]);
+
+                if ($status === 'ganador') {
+                    $query->whereNotNull('ganador_en');
+                } elseif ($status === 'no_ganador') {
+                    $query->whereNull('ganador_en');
+                }
+                // Si es 'todos', no aplica filtro
+
+                // DEBUG: Log después de aplicar filtro
+                Log::info('Filtro ganador_status resultado', [
+                    'status' => $status,
+                    'count_after' => $query->count(),
+                ]);
             }
 
             $query->orderBy($sort, $direction);
 
-            $cacheKey = 'participantes:list:'.md5(json_encode([
+            $cacheKey = 'participantes:list:' . md5(json_encode([
                 'page' => $page,
                 'per_page' => $perPage,
                 'sort' => $sort,
@@ -63,6 +87,7 @@ abstract class GetAllParticipantes extends Action
                 'q' => $options['q'] ?? null,
                 'sorteo_id' => $options['sorteo_id'] ?? null,
                 'province' => $options['province'] ?? null,
+                'ganador_status' => $options['ganador_status'] ?? null,
             ]));
 
             $response = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($query, $perPage, $page) {

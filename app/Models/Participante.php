@@ -13,7 +13,13 @@ class Participante extends Model
         'phone',
         'location',
         'province',
-        'carton_number'];
+        'carton_number',
+        'ganador_en',
+    ];
+
+    protected $casts = [
+        'ganador_en' => 'integer',
+    ];
 
     public function sorteo()
     {

@@ -42,7 +42,7 @@ class ParticipantesController extends Controller
         }
 
         return redirect()->route('participantes')
-            ->with('status', 'Importación finalizada: '.$stats['imported'].' filas importadas, '.$stats['failed'].' con errores.');
+            ->with('status', 'Importación finalizada: ' . $stats['imported'] . ' filas importadas, ' . $stats['failed'] . ' con errores.');
     }
 
     /**
@@ -58,6 +58,7 @@ class ParticipantesController extends Controller
             'q' => (string) $request->query('q', ''),
             'sorteo_id' => (string) $request->query('sorteo_id', ''),
             'province' => (string) $request->query('province', ''),
+            'ganador_status' => (string) $request->query('ganador_status', ''),
         ]);
     }
 }

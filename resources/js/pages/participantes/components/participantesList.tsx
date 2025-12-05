@@ -8,6 +8,9 @@ import sorteo from "@/routes/sorteo";
 import { participantes as participantesRoute } from "@/routes";
 import { usePage } from "@inertiajs/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResetWinnersDialog } from "@/components/ResetWinnersDialog";
+import { WinnerBadge } from "@/components/WinnerBadge";
+import { DebugFilter } from "@/components/DebugFilter";
 
 interface ParticipanteItem {
   id: number;
@@ -19,6 +22,7 @@ interface ParticipanteItem {
   location: string;
   province: string;
   carton_number: string;
+  ganador_en: number | null;
   created_at: string | null;
 }
 
@@ -46,12 +50,26 @@ export default function ParticipantesList() {
   const [q, setQ] = useState<string>("");
   const [qInput, setQInput] = useState<string>("");
   const [sorteoId, setSorteoId] = useState<string>("");
+  const [ganadorStatus, setGanadorStatus] = useState<string>("");
   const [sorteos, setSorteos] = useState<Array<{ id: number; nombre: string }>>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const query = useMemo(() => ({ page, per_page: perPage, sort, direction, q, sorteo_id: sorteoId }), [page, perPage, sort, direction, q, sorteoId]);
+  const query = useMemo(() => {
+    const params: Record<string, any> = { 
+      page, 
+      per_page: perPage, 
+      sort, 
+      direction,
+    };
+    
+    if (q) params.q = q;
+    if (sorteoId) params.sorteo_id = sorteoId;
+    if (ganadorStatus) params.ganador_status = ganadorStatus;
+    
+    return params;
+  }, [page, perPage, sort, direction, q, sorteoId, ganadorStatus]);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -85,6 +103,10 @@ export default function ParticipantesList() {
       if (qParam) {
         setQ(qParam);
         setQInput(qParam);
+      }
+      const ganadorParam = url.searchParams.get("ganador_status");
+      if (ganadorParam) {
+        setGanadorStatus(ganadorParam);
       }
     }
     fetchList();
@@ -129,6 +151,17 @@ export default function ParticipantesList() {
       size="large"
     >
       <div className="space-y-4">
+        {/* Botón de resetear ganadores */}
+        <div className="flex justify-end">
+          <ResetWinnersDialog 
+            sorteos={sorteos} 
+            defaultSorteoId={sorteoId}
+          />
+        </div>
+
+        {/* Debug Filter - Remover en producción */}
+        <DebugFilter ganadorStatus={ganadorStatus} query={query} />
+
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="flex gap-2">
             <Input
@@ -152,6 +185,18 @@ export default function ParticipantesList() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Select value={ganadorStatus} onValueChange={(v) => { setGanadorStatus(v === "__all__" ? "" : v); setPage(1); }}>
+              <SelectTrigger aria-label="Estado">
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos</SelectItem>
+                <SelectItem value="ganador">🏆 Solo Ganadores</SelectItem>
+                <SelectItem value="no_ganador">⏳ No Ganadores</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Table>
@@ -164,22 +209,23 @@ export default function ParticipantesList() {
               <TableHead>Localidad</TableHead>
               <TableHead>Provincia</TableHead>
               <TableHead className="cursor-pointer" onClick={() => toggleSort("carton_number")}>Nº Cartón</TableHead>
+              <TableHead>Ganador</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={7}>Cargando...</TableCell>
+                <TableCell colSpan={8}>Cargando...</TableCell>
               </TableRow>
             )}
             {error && !loading && (
               <TableRow>
-                <TableCell colSpan={7}>{error}</TableCell>
+                <TableCell colSpan={8}>{error}</TableCell>
               </TableRow>
             )}
             {!loading && !error && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7}>No hay participantes para los filtros seleccionados.</TableCell>
+                <TableCell colSpan={8}>No hay participantes para los filtros seleccionados.</TableCell>
               </TableRow>
             )}
             {items.map((p) => (
@@ -191,6 +237,9 @@ export default function ParticipantesList() {
                 <TableCell>{p.location}</TableCell>
                 <TableCell>{p.province}</TableCell>
                 <TableCell>{p.carton_number}</TableCell>
+                <TableCell>
+                  <WinnerBadge ganadorEn={p.ganador_en} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

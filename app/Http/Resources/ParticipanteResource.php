@@ -26,6 +26,7 @@ class ParticipanteResource extends JsonResource
             'location' => (string) ($this->location ?? ''),
             'province' => (string) ($this->province ?? ''),
             'carton_number' => (string) ($this->carton_number ?? ''),
+            'ganador_en' => $this->ganador_en,
             'created_at' => optional($this->created_at)->toISOString(),
         ];
     }

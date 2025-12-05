@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sorteo/{sorteo}/premios/add', [SorteoController::class, 'addPremio'])->name('sorteo.premios.add');
     Route::delete('sorteo/{sorteo}/premios/remove', [SorteoController::class, 'removePremio'])->name('sorteo.premios.remove');
     Route::patch('sorteo/{sorteo}/premios/reorder', [SorteoController::class, 'reorderPremios'])->name('sorteo.premios.reorder');
+    Route::post('sorteo/{sorteo}/toggle-status', [SorteoController::class, 'toggleStatus'])->name('sorteo.toggleStatus');
 
     // Premios
     Route::get('premios', [PremioController::class, 'index'])->name('premios');

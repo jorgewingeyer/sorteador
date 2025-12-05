@@ -13,6 +13,7 @@ export interface SorteoItem {
   nombre: string
   fecha: string
   estado: SorteoEstado
+  status: boolean
   created_at: string | null
 }
 

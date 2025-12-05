@@ -6,9 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Sorteo extends Model
 {
-    protected $fillable = ['nombre', 'fecha'];
+    protected $fillable = ['nombre', 'fecha', 'status'];
 
     protected $casts = [
+        'status' => 'boolean',
         'fecha' => 'date',
     ];
 

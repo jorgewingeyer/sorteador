@@ -6,11 +6,13 @@ use App\Actions\Sorteo\GetAllSorteos;
 use App\Actions\Sorteo\RealizarSorteo;
 use App\Actions\Sorteo\ResetearGanadores;
 use App\Actions\Sorteo\StoreSorteo;
+use App\Actions\Sorteo\ToggleSorteoStatus;
 use App\Actions\Sorteo\UpdateSorteoPremios;
 use App\Actions\Sorteo\AddPremioToSorteo;
 use App\Actions\Sorteo\RemovePremioFromSorteo;
 use App\Actions\Premios\GetAllPremios;
 use App\Http\Requests\Sorteo\UpdatePremiosRequest;
+use App\Http\Requests\Sorteo\ToggleStatusRequest;
 use App\Http\Requests\Sorteo\AddPremioRequest;
 use App\Http\Requests\Sorteo\RemovePremioRequest;
 use App\Http\Requests\Sorteo\ReorderPremiosRequest;
@@ -197,6 +199,31 @@ class SorteoController extends Controller
 
         return redirect()->route('sorteo')
             ->with('status', 'Premio eliminado');
+    }
+
+    public function toggleStatus(ToggleStatusRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
+    {
+        $data = $request->validated();
+
+        try {
+            ToggleSorteoStatus::execute($sorteo, (bool) $data['status']);
+        } catch (\Throwable $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
+        if ($request->expectsJson()) {
+            return (new SorteoResource($sorteo->fresh()))
+                ->additional(['status' => 'ok', 'message' => 'Estado actualizado'])
+                ->response();
+        }
+
+        return back()->with('status', 'Estado actualizado');
     }
 
     public function reorderPremios(ReorderPremiosRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse

@@ -52,6 +52,7 @@ class SorteoResource extends JsonResource
                 },
                 'variant' => $variant,
             ],
+            'status' => (bool) $this->status,
             'created_at' => optional($this->created_at)->toISOString(),
             'premios' => $this->whenLoaded('premios', function () {
                 return PremioResource::collection($this->premios)->resolve();

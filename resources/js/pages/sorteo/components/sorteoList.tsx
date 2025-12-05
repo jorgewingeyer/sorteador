@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import SorteoController from "@/actions/App/Http/Controllers/SorteoController"
 import type { PremioItem, PremioListResponse } from "@/types/premios"
 import { GripVertical, Trash2, Plus, CheckCircle2, AlertCircle } from "lucide-react"
@@ -122,8 +123,8 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
       setModalError("Completa premio y posición válidos.")
       return
     }
-    const def = SorteoController.addPremio.form.post({ sorteo: current.id })
-    router.post(def.action, { premio_id: premioIdNum, posicion: posNum }, {
+    const def = SorteoController.addPremio.post({ sorteo: current.id })
+    router.post(def.url, { premio_id: premioIdNum, posicion: posNum }, {
       preserveState: true,
       preserveScroll: true,
       onSuccess: async () => {
@@ -141,8 +142,8 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
     setModalMsg(null)
     setModalError(null)
     if (!current) return
-    const def = SorteoController.removePremio.form.delete({ sorteo: current.id })
-    router.post(def.action, { premio_id, posicion }, {
+    const def = SorteoController.removePremio.delete({ sorteo: current.id })
+    router.post(def.url, { premio_id, posicion, _method: 'DELETE' }, {
       preserveState: true,
       preserveScroll: true,
       onSuccess: async () => {
@@ -158,9 +159,9 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
     setModalMsg(null)
     setModalError(null)
     if (!current) return
-    const payload = { premios: assignments.map((a) => ({ premio_id: a.premio_id, posicion: a.posicion })) }
-    const def = SorteoController.reorderPremios.form.patch({ sorteo: current.id })
-    router.post(def.action, payload, {
+    const payload = { premios: assignments.map((a) => ({ premio_id: a.premio_id, posicion: a.posicion })), _method: 'PATCH' }
+    const def = SorteoController.reorderPremios.patch({ sorteo: current.id })
+    router.post(def.url, payload, {
       preserveState: true,
       preserveScroll: true,
       onSuccess: async () => {
@@ -170,6 +171,31 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
       },
       onError: () => setModalError("No se pudo guardar el orden."),
     })
+  }
+
+  const toggleStatus = async (item: SorteoItem, checked: boolean) => {
+    setData((prev) => {
+      if (!prev) return null
+      const updated = prev.data.map((d) => {
+        if (d.id === item.id) return { ...d, status: checked }
+        if (checked && d.status) return { ...d, status: false }
+        return d
+      })
+      return { ...prev, data: updated }
+    })
+
+    try {
+        const def = SorteoController.toggleStatus.post({ sorteo: item.id })
+        router.post(def.url, { status: checked }, {
+            preserveState: true,
+            preserveScroll: true,
+            onError: () => {
+                fetchList()
+            }
+        })
+    } catch {
+        fetchList()
+    }
   }
 
   return (
@@ -209,7 +235,13 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
                 <TableCell>{item.fecha}</TableCell>
                 <TableCell>{item.nombre}</TableCell>
                 <TableCell>
-                  <Badge variant={item.estado.variant}>{item.estado.label}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={item.status}
+                      onCheckedChange={(v) => toggleStatus(item, v)}
+                    />
+                    <Badge variant={item.estado.variant}>{item.estado.label}</Badge>
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button

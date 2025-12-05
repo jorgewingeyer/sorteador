@@ -25,4 +25,21 @@ class Participante extends Model
     {
         return $this->belongsTo(Sorteo::class);
     }
+
+    public function getPremioAttribute()
+    {
+        if (! $this->ganador_en) {
+            return null;
+        }
+
+        $sorteo = $this->sorteo;
+        if (! $sorteo) {
+            return null;
+        }
+
+        return $sorteo
+            ->premios()
+            ->wherePivot('posicion', $this->ganador_en)
+            ->first();
+    }
 }

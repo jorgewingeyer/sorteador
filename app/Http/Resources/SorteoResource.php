@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Carbon\Carbon;
+use App\Http\Resources\Premios\PremioResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -52,6 +53,9 @@ class SorteoResource extends JsonResource
                 'variant' => $variant,
             ],
             'created_at' => optional($this->created_at)->toISOString(),
+            'premios' => $this->whenLoaded('premios', function () {
+                return PremioResource::collection($this->premios)->resolve();
+            }),
         ];
     }
 }

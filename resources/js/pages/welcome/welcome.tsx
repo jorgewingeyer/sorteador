@@ -16,15 +16,6 @@ interface WelcomeProps {
     canRegister?: boolean;
 }
 
-/**
- * Página principal del sorteo de la Lotería Chaqueña
- * 
- * Principios aplicados:
- * - SRP (Single Responsibility): Cada componente tiene una única responsabilidad
- * - DRY (Don't Repeat Yourself): Componentes reutilizables, sin código duplicado
- * - OCP (Open/Closed): Abierto para extensión, cerrado para modificación
- * - Composición: Componentes pequeños y componibles
- */
 export default function Welcome({ canRegister = true }: WelcomeProps) {
     const { auth } = usePage<SharedData>().props;
     const { isDrawing, winner, showConfetti, handleDraw } = useRaffle();

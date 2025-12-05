@@ -27,12 +27,17 @@ class RealizarSorteo
      * @return array
      * @throws Exception
      */
-    public static function execute(): array
+    public static function execute(?int $sorteoId = null): array
     {
+        // Query base para participantes
+        $query = Participante::whereNull('ganador_en');
+
+        if ($sorteoId) {
+            $query->where('sorteo_id', $sorteoId);
+        }
+
         // Contar total de participantes QUE NO HAN GANADO
-        // whereNull filtra solo participantes sin ganador_en (disponibles)
-        // Esto es eficiente incluso con millones de registros
-        $totalParticipantes = Participante::whereNull('ganador_en')->count();
+        $totalParticipantes = $query->count();
 
         // Verificar que existan participantes disponibles
         if ($totalParticipantes === 0) {
@@ -40,36 +45,31 @@ class RealizarSorteo
         }
 
         // Generar un índice aleatorio criptográficamente seguro
-        // random_int() usa fuentes de entropía del sistema operativo:
-        // - Linux/Unix: /dev/urandom o getrandom() syscall
-        // - Windows: CryptGenRandom()
-        // Garantiza distribución uniforme perfecta sin modulo bias
         $indiceAleatorio = random_int(0, $totalParticipantes - 1);
 
         // Seleccionar el ganador usando offset + first()
-        // Solo considera participantes que NO han ganado (ganador_en IS NULL)
-        // Solo carga 1 registro de la base de datos, no importa cuántos participantes haya
-        $ganador = Participante::query()
-            ->whereNull('ganador_en')
-            ->offset($indiceAleatorio)
-            ->first();
+        $ganador = $query->offset($indiceAleatorio)->first();
 
-        // Verificación de seguridad (no debería ocurrir nunca, pero por si acaso)
+        // Verificación de seguridad
         if (!$ganador) {
             throw new Exception('Error inesperado al seleccionar el ganador. Por favor, intenta de nuevo.');
         }
 
-        // Timestamp en formato ISO-8601 para compatibilidad internacional
+        // Timestamp en formato ISO-8601
         $timestamp = now();
 
         // Contar total de participantes originales para estadísticas
-        $totalParticipantesOriginal = Participante::count();
+        $queryTotal = Participante::query();
+        if ($sorteoId) {
+            $queryTotal->where('sorteo_id', $sorteoId);
+        }
+        $totalParticipantesOriginal = $queryTotal->count();
+
         $participantesDisponibles = $totalParticipantes;
         $ganadoresTotales = $totalParticipantesOriginal - $participantesDisponibles;
 
         // MARCAR AL GANADOR con la posición en que salió sorteado
-        // La posición es: ganadores_anteriores + 1
-        // Esto evita que sea seleccionado en sorteos futuros
+        // La posición es relativa al sorteo si se especificó ID, o global si no.
         $posicionGanador = $ganadoresTotales + 1;
         $ganador->ganador_en = $posicionGanador;
         $ganador->save();

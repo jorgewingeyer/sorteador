@@ -6,8 +6,18 @@ use App\Actions\Sorteo\GetAllSorteos;
 use App\Actions\Sorteo\RealizarSorteo;
 use App\Actions\Sorteo\ResetearGanadores;
 use App\Actions\Sorteo\StoreSorteo;
+use App\Actions\Sorteo\UpdateSorteoPremios;
+use App\Actions\Sorteo\AddPremioToSorteo;
+use App\Actions\Sorteo\RemovePremioFromSorteo;
+use App\Actions\Premios\GetAllPremios;
+use App\Http\Requests\Sorteo\UpdatePremiosRequest;
+use App\Http\Requests\Sorteo\AddPremioRequest;
+use App\Http\Requests\Sorteo\RemovePremioRequest;
+use App\Http\Requests\Sorteo\ReorderPremiosRequest;
 use App\Http\Requests\Sorteo\StoreRequest;
 use App\Http\Resources\SorteoResource;
+use App\Http\Resources\Premios\PremioResource;
+use App\Models\Sorteo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,9 +34,17 @@ class SorteoController extends Controller
             'sort' => 'fecha',
             'direction' => 'desc',
         ]);
+        $premios = GetAllPremios::execute([
+            'page' => 1,
+            'per_page' => 100,
+            'sort' => 'nombre',
+            'direction' => 'asc',
+        ]);
 
         return Inertia::render('sorteo/sorteo', [
             'listSorteos' => $response->getData(true),
+            'premios' => PremioResource::collection($premios)->response()->getData(true),
+            'createdSorteoId' => $request->session()->get('created_sorteo_id'),
         ]);
     }
 
@@ -44,6 +62,13 @@ class SorteoController extends Controller
         ]);
     }
 
+    public function show(Sorteo $sorteo): JsonResponse
+    {
+        return (new SorteoResource($sorteo->load('premios')))
+            ->additional(['status' => 'ok'])
+            ->response();
+    }
+
     public function store(StoreRequest $request): RedirectResponse|JsonResponse
     {
         $data = $request->validated();
@@ -56,16 +81,21 @@ class SorteoController extends Controller
         }
 
         return redirect()->route('sorteo')
-            ->with('status', 'Sorteo creado correctamente');
+            ->with('status', 'Sorteo creado correctamente')
+            ->with('created_sorteo_id', $sorteo->id);
     }
 
     /**
      * Realiza un sorteo aleatorio entre todos los participantes.
      */
-    public function realizar(): JsonResponse
+    public function realizar(Request $request): JsonResponse
     {
         try {
-            $resultado = RealizarSorteo::execute();
+            $sorteoId = $request->input('sorteo_id');
+            // Allow numeric ID or null
+            $sorteoId = is_numeric($sorteoId) ? (int) $sorteoId : null;
+
+            $resultado = RealizarSorteo::execute($sorteoId);
 
             return response()->json($resultado);
         } catch (\Exception $e) {
@@ -98,5 +128,100 @@ class SorteoController extends Controller
                 'error' => $e->getMessage(),
             ], 400);
         }
+    }
+
+    public function updatePremios(UpdatePremiosRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
+    {
+        $data = $request->validated();
+        $premiosConfig = array_map(function ($item) {
+            return [
+                'premio_id' => (int) $item['premio_id'],
+                'posicion' => (int) $item['posicion'],
+            ];
+        }, $data['premios']);
+
+        UpdateSorteoPremios::execute($sorteo, $premiosConfig);
+
+        if ($request->expectsJson()) {
+            return (new SorteoResource($sorteo->fresh('premios')))
+                ->additional(['status' => 'ok'])
+                ->response();
+        }
+
+        return redirect()->route('sorteo')
+            ->with('status', 'Premios asignados correctamente');
+    }
+
+    public function addPremio(AddPremioRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
+    {
+        if (!$request->user()) {
+            return response()->json(['status' => 'error', 'message' => 'No autorizado'], 403);
+        }
+
+        $data = $request->validated();
+
+        try {
+            AddPremioToSorteo::execute($sorteo, (int) $data['premio_id'], (int) $data['posicion']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        if ($request->expectsJson()) {
+            return (new SorteoResource($sorteo->fresh('premios')))
+                ->additional(['status' => 'ok', 'message' => 'Premio agregado'])
+                ->response();
+        }
+
+        return redirect()->route('sorteo')
+            ->with('status', 'Premio agregado');
+    }
+
+    public function removePremio(RemovePremioRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
+    {
+        if (!$request->user()) {
+            return response()->json(['status' => 'error', 'message' => 'No autorizado'], 403);
+        }
+
+        $data = $request->validated();
+
+        RemovePremioFromSorteo::execute($sorteo, (int) $data['premio_id'], (int) $data['posicion']);
+
+        if ($request->expectsJson()) {
+            return (new SorteoResource($sorteo->fresh('premios')))
+                ->additional(['status' => 'ok', 'message' => 'Premio eliminado'])
+                ->response();
+        }
+
+        return redirect()->route('sorteo')
+            ->with('status', 'Premio eliminado');
+    }
+
+    public function reorderPremios(ReorderPremiosRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
+    {
+        if (!$request->user()) {
+            return response()->json(['status' => 'error', 'message' => 'No autorizado'], 403);
+        }
+
+        $data = $request->validated();
+        $premiosConfig = array_map(function ($item) {
+            return [
+                'premio_id' => (int) $item['premio_id'],
+                'posicion' => (int) $item['posicion'],
+            ];
+        }, $data['premios']);
+
+        UpdateSorteoPremios::execute($sorteo, $premiosConfig);
+
+        if ($request->expectsJson()) {
+            return (new SorteoResource($sorteo->fresh('premios')))
+                ->additional(['status' => 'ok', 'message' => 'Premios reordenados'])
+                ->response();
+        }
+
+        return redirect()->route('sorteo')
+            ->with('status', 'Premios reordenados');
     }
 }

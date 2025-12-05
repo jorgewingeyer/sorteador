@@ -160,7 +160,7 @@ export default function ParticipantesList() {
         </div>
 
         {/* Debug Filter - Remover en producción */}
-        <DebugFilter ganadorStatus={ganadorStatus} query={query} />
+        {/* <DebugFilter ganadorStatus={ganadorStatus} query={query} /> */}
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="flex gap-2">

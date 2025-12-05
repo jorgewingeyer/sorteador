@@ -16,5 +16,12 @@ class Sorteo extends Model
     {
         return $this->hasMany(Participante::class);
     }
+
+    public function premios()
+    {
+        return $this->belongsToMany(Premio::class, 'premio_sorteo')
+            ->withPivot('posicion')
+            ->withTimestamps();
+    }
     //
 }

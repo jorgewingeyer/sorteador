@@ -47,11 +47,11 @@
 /* Clases de utilidad */
 .lottery-gradient {
     background: linear-gradient(135deg, 
-        #8B0000 0%,
-        #B22222 25%,
-        #DC143C 50%,
-        #B22222 75%,
-        #8B0000 100%
+        #063565 0%,
+        #084B8A 25%,
+        #042242 50%,
+        #084B8A 75%,
+        #063565 100%
     );
     background-size: 200% 200%;
     animation: gradient-shift 15s ease infinite;

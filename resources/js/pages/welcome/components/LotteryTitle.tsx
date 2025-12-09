@@ -7,12 +7,18 @@ const LOGO_PATH = '/storage/logoLoteria.png';
 export function LotteryTitle() {
     return (
         <div className="text-center mb-8">
-            {/* Logo */}
-            <div className="mb-6 flex justify-center">
+            {/* Logos */}
+            <div className="mb-8 flex justify-center items-center gap-8">
+                <img 
+                    src="/storage/Gobierno-del-Chaco.png" 
+                    alt="Gobierno del Chaco" 
+                    className="h-24 md:h-32 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+                />
+                <div className="w-px h-20 bg-white/30 rounded-full"></div>
                 <img 
                     src={LOGO_PATH} 
                     alt="Lotería Chaqueña" 
-                    className="h-32 md:h-40 drop-shadow-2xl"
+                    className="h-32 md:h-40 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-300"
                 />
             </div>
             

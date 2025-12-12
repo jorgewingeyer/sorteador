@@ -6,6 +6,7 @@ interface UseRaffleReturn {
     winner: WinnerResult | null;
     showConfetti: boolean;
     handleDraw: () => Promise<void>;
+    resetRaffle: () => void;
 }
 
 /**
@@ -16,6 +17,11 @@ export function useRaffle(): UseRaffleReturn {
     const [isDrawing, setIsDrawing] = useState(false);
     const [winner, setWinner] = useState<WinnerResult | null>(null);
     const [showConfetti, setShowConfetti] = useState(false);
+
+    const resetRaffle = () => {
+        setWinner(null);
+        setShowConfetti(false);
+    };
 
     const handleDraw = async () => {
         setIsDrawing(true);
@@ -59,5 +65,6 @@ export function useRaffle(): UseRaffleReturn {
         winner,
         showConfetti,
         handleDraw,
+        resetRaffle,
     };
 }

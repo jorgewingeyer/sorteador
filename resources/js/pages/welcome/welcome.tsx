@@ -18,7 +18,7 @@ interface WelcomeProps {
 
 export default function Welcome({ canRegister = true }: WelcomeProps) {
     const { auth } = usePage<SharedData>().props;
-    const { isDrawing, winner, showConfetti, handleDraw } = useRaffle();
+    const { isDrawing, winner, showConfetti, handleDraw, resetRaffle } = useRaffle();
 
     return (
         <>
@@ -54,7 +54,7 @@ export default function Welcome({ canRegister = true }: WelcomeProps) {
 
                     {/* Results Section */}
                     {winner ? (
-                        <WinnerCard winner={winner} />
+                        <WinnerCard winner={winner} onClose={resetRaffle} />
                     ) : (
                         !isDrawing && <InfoCard />
                     )}

@@ -4,9 +4,8 @@ namespace App\Actions\Participantes;
 
 use App\Actions\Action;
 use App\Actions\Participantes\Transformers\CsvParticipanteTransformer;
-use App\Actions\Participantes\Validators\ParticipanteRowValidator;
+use App\Jobs\ProcessCsvChunk;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -17,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 abstract class ImportParticipantesFromCSV extends Action
 {
     /** @var int */
-    private const CHUNK_SIZE = 500;
+    private const CHUNK_SIZE = 1000;
 
     /** @var int */
     private const ERROR_LIMIT = 200;
@@ -98,44 +97,20 @@ abstract class ImportParticipantesFromCSV extends Action
                     $assoc[$header] = isset($row[$idx]) ? (string) $row[$idx] : null;
                 }
 
+                // Transform immediately to ensure UTF-8 encoding before dispatching
                 $mapped = CsvParticipanteTransformer::execute($assoc, $sorteoId);
-                $validation = ParticipanteRowValidator::execute($mapped);
-
-                if (! $validation['valid']) {
-                    $failed++;
-                    if (count($errors) < self::ERROR_LIMIT) {
-                        $errors[] = [
-                            'line' => $line,
-                            'error' => implode('; ', $validation['errors']),
-                        ];
-                    }
-
-                    continue;
-                }
-
                 $batch[] = $mapped;
+                
                 if (count($batch) >= self::CHUNK_SIZE) {
-                    DB::table('participantes')->insert($batch);
+                    ProcessCsvChunk::dispatch($batch, $sorteoId);
                     $chunks++;
-                    $imported += count($batch);
-                    Log::info('CSV import chunk inserted', [
-                        'chunk_size' => count($batch),
-                        'imported_total' => $imported,
-                        'processed' => $processed,
-                    ]);
                     $batch = [];
                 }
             }
 
             if (! empty($batch)) {
-                DB::table('participantes')->insert($batch);
+                ProcessCsvChunk::dispatch($batch, $sorteoId);
                 $chunks++;
-                $imported += count($batch);
-                Log::info('CSV import final chunk inserted', [
-                    'chunk_size' => count($batch),
-                    'imported_total' => $imported,
-                    'processed' => $processed,
-                ]);
             }
         } catch (\Throwable $e) {
             Log::error('CSV import failure', [
@@ -148,8 +123,8 @@ abstract class ImportParticipantesFromCSV extends Action
 
         return [
             'status' => 'ok',
-            'imported' => $imported,
-            'failed' => $failed,
+            'imported' => 0, // Processing in background
+            'failed' => 0,   // Processing in background
             'processed' => $processed,
             'chunks' => $chunks,
             'errors' => $errors,

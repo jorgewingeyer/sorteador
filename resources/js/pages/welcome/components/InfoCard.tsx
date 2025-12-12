@@ -10,11 +10,11 @@ export function InfoCard() {
                 <span className="font-black text-red-700">completamente aleatoria</span> entre 
                 todos los participantes registrados.
             </p>
-            <p className="text-gray-600 text-sm font-medium">
+            {/* <p className="text-gray-600 text-sm font-medium">
                 ✓ Algoritmo criptográficamente seguro<br/>
                 ✓ Cada participante tiene las mismas probabilidades<br/>
                 ✓ Sistema certificado y auditable
-            </p>
+            </p> */}
         </div>
     );
 }

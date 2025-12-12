@@ -7,18 +7,18 @@ El sistema implementa un mecanismo para **evitar que un mismo participante gane 
 ### Funcionamiento
 
 1. **Al iniciar**: Todos los participantes tienen `ganador_en = NULL` (están disponibles)
-2. **Al ganar**: El participante seleccionado recibe `ganador_en = timestamp actual`
+2. **Al ganar**: El participante seleccionado recibe `ganador_en = la posición en la que ganó`
 3. **Próximo sorteo**: Solo se consideran participantes con `ganador_en = NULL`
 
 ### Cambios en la Base de Datos
 
 **Campo agregado a la tabla `participantes`**:
 ```sql
-ganador_en TIMESTAMP NULL
+ganador_en integer NULL
 ```
 
 - **NULL**: El participante NO ha ganado (disponible para sorteos)
-- **Timestamp**: Fecha y hora exacta en que ganó (no participa en futuros sorteos)
+- **Entero**: Posición en la que ganó (no participa en futuros sorteos)
 
 ### Índice de Performance
 
@@ -45,7 +45,7 @@ Cada sorteo ahora devuelve información detallada:
         "location": "Resistencia",
         "province": "Chaco",
         "carton_number": "25505",
-        "ganador_en": "2025-12-04T23:22:41+00:00"
+        "ganador_en": 2
     },
     "total_participants": 20343,
     "available_participants": 20342,
@@ -61,7 +61,7 @@ Cada sorteo ahora devuelve información detallada:
 | `total_participants` | Total de participantes registrados en el sistema |
 | `available_participants` | Participantes que AÚN NO han ganado (disponibles) |
 | `previous_winners` | Cantidad de participantes que YA ganaron |
-| `ganador_en` | Timestamp exacto en que este participante ganó |
+| `ganador_en` | Posición en la que este participante ganó |
 
 ---
 
@@ -242,7 +242,7 @@ Los logs ahora incluyen información adicional:
 3. Comenzar nuevo ciclo el próximo mes
 
 ### Sorteo con Múltiples Premios
-1. Primer sorteo → Premio mayor
+1. Primer sorteo → Premio menor 
 2. Segundo sorteo → Premio secundario (excluye al primero)
 3. Tercer sorteo → Premio terciario (excluye a los dos primeros)
 4. Y así sucesivamente...

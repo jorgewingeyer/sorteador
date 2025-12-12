@@ -193,11 +193,18 @@ export default function ImportCSV() {
 
         {result && (
           <Alert className="border-green-300/60 bg-green-50 text-green-800 dark:border-green-700/50 dark:bg-green-900/20 dark:text-green-200">
-            <AlertTitle>¡Importación finalizada!</AlertTitle>
+            <AlertTitle>
+              {result.imported === 0 && result.processed > 0
+                ? "Importación en proceso (segundo plano)"
+                : "¡Importación finalizada!"}
+            </AlertTitle>
             <AlertDescription>
-              <p>Procesadas: {result.processed}</p>
-              <p>Importadas: {result.imported}</p>
-              <p>Con errores: {result.failed}</p>
+              <p>Total registros leídos: {result.processed}</p>
+              {result.imported > 0 && <p>Importadas: {result.imported}</p>}
+              {result.failed > 0 && <p>Con errores: {result.failed}</p>}
+              {result.imported === 0 && result.processed > 0 && (
+                <p>Los registros se están procesando en segundo plano. Puede cerrar esta ventana.</p>
+              )}
             </AlertDescription>
           </Alert>
         )}

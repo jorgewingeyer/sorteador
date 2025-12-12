@@ -23,12 +23,12 @@ class ParticipantesController extends Controller
      */
     public function import(ImportRequest $request): JsonResponse|RedirectResponse
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(300); // Allow more time for large files
         $validated = $request->validated();
         $stats = ImportParticipantesFromCSV::execute($request->file('file'), (int) $validated['sorteo_id']);
 
-        Log::info('CSV import completed', [
-            'imported' => $stats['imported'],
-            'failed' => $stats['failed'],
+        Log::info('CSV import queued', [
             'processed' => $stats['processed'],
             'chunks' => $stats['chunks'],
         ]);
@@ -36,13 +36,13 @@ class ParticipantesController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => $stats['status'],
-                'message' => 'Importación finalizada',
+                'message' => 'Importación iniciada en segundo plano. Se están procesando ' . $stats['processed'] . ' registros.',
                 'stats' => $stats,
             ], 200, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
         }
 
         return redirect()->route('participantes')
-            ->with('status', 'Importación finalizada: ' . $stats['imported'] . ' filas importadas, ' . $stats['failed'] . ' con errores.');
+            ->with('status', 'Importación iniciada en segundo plano: ' . $stats['processed'] . ' filas en proceso.');
     }
 
     /**

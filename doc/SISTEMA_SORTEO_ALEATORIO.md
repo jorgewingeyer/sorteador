@@ -455,10 +455,6 @@ storage/logs/laravel.log
    - Índice aleatorio seleccionado
    - Timestamp ISO-8601
 
-3. **Verificabilidad**
-   - Cualquier sorteo puede ser verificado posteriormente
-   - Los logs son inmutables (solo agregan, no modifican)
-
 ### Ejemplo de Entrada en el Log
 
 ```

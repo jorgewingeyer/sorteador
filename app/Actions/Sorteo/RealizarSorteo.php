@@ -46,6 +46,11 @@ class RealizarSorteo
 
         $totalCartonesUnicos = $cartonesDisponibles->count();
 
+        // Obtener total de registros brutos (para comparación en debug)
+        $totalRegistrosParticipantes = Participante::where('sorteo_id', $sorteoId)
+            ->whereNull('ganador_en')
+            ->count();
+
         // Verificar que existan participantes disponibles
         if ($totalCartonesUnicos === 0) {
             throw new Exception('No hay participantes (cartones) disponibles para el sorteo.');
@@ -134,6 +139,8 @@ class RealizarSorteo
             'posicion_sorteo' => $posicionGanador,
             'premio' => $premioNombre,
             'total_cartones_unicos' => $totalCartonesUnicos,
+            'total_registros_brutos' => $totalRegistrosParticipantes,
+            'duplicados_filtrados' => $totalRegistrosParticipantes - $totalCartonesUnicos,
             'ganadores_afectados_count' => $totalGanadoresAfectados,
             'timestamp' => $timestamp->toIso8601String(),
             'probabilidad_carton' => '1/' . $totalCartonesUnicos,
@@ -146,6 +153,11 @@ class RealizarSorteo
             'posicion_sorteo' => $posicionGanador,
             'total_ganadores' => $totalGanadoresAfectados, // Cantidad de participantes con este cartón
             'timestamp' => $timestamp->toIso8601String(),
+            'debug_info' => [
+                'total_registros' => $totalRegistrosParticipantes,
+                'total_cartones_unicos' => $totalCartonesUnicos,
+                'duplicados_ignorados' => $totalRegistrosParticipantes - $totalCartonesUnicos,
+            ]
         ];
     }
 }

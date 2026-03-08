@@ -37,6 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('participantes', [ParticipantesController::class, 'index'])->name('participantes');
     Route::post('participantes/import', [ParticipantesController::class, 'import'])->name('participantes.import');
     Route::get('participantes/list', [ParticipantesController::class, 'list'])->name('participantes.list');
+    Route::get('participantes/stats', [ParticipantesController::class, 'stats'])->name('participantes.stats');
 });
 
 require __DIR__ . '/settings.php';

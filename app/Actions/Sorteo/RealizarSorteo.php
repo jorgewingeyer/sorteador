@@ -10,20 +10,16 @@ use Illuminate\Support\Facades\Log;
 class RealizarSorteo
 {
     /**
-     * Realiza un sorteo aleatorio entre todos los participantes.
+     * Realiza un sorteo aleatorio seleccionando un número de cartón único.
      * 
-     * Este método está optimizado para manejar grandes volúmenes de participantes
-     * (20,000+) sin cargar todos los registros en memoria.
+     * Este método implementa una deduplicación lógica para garantizar equidad:
+     * 1. Identifica todos los números de cartón únicos participantes.
+     * 2. Selecciona aleatoriamente uno de esos cartones.
+     * 3. Asigna el premio a TODOS los participantes que tengan ese cartón.
      * 
-     * Utiliza random_int() que es criptográficamente seguro para garantizar
-     * una selección verdaderamente aleatoria, cumpliendo con estándares
-     * CSPRNG (Cryptographically Secure Pseudo-Random Number Generator).
-     * 
-     * El algoritmo garantiza:
-     * - Distribución uniforme perfecta (cada participante tiene 1/N probabilidad)
-     * - No predecibilidad (imposible predecir el resultado)
-     * - Sin sesgos (modulo bias eliminado automáticamente por random_int)
-     * - Eficiencia en memoria (solo carga 1 registro)
+     * Esto asegura que tener múltiples registros con el mismo cartón no aumenta
+     * las probabilidades de ganar. La probabilidad es 1/N donde N es la cantidad
+     * de cartones únicos, no la cantidad de registros.
      * 
      * @return array
      * @throws Exception
@@ -40,49 +36,63 @@ class RealizarSorteo
         // Usar el ID del sorteo activo
         $sorteoId = $sorteo->id;
 
-        // Query base para participantes
-        $query = Participante::whereNull('ganador_en')
-            ->where('sorteo_id', $sorteoId);
+        // 1. Obtener lista de cartones únicos que NO han ganado
+        // Usamos distinct() para la deduplicación lógica
+        $cartonesDisponibles = Participante::where('sorteo_id', $sorteoId)
+            ->whereNull('ganador_en')
+            ->whereNotNull('carton_number') // Asegurar que tenga cartón
+            ->distinct()
+            ->pluck('carton_number');
 
-        // Contar total de participantes QUE NO HAN GANADO
-        $totalParticipantes = $query->count();
+        $totalCartonesUnicos = $cartonesDisponibles->count();
+
+        // Obtener total de registros brutos (para comparación en debug)
+        $totalRegistrosParticipantes = Participante::where('sorteo_id', $sorteoId)
+            ->whereNull('ganador_en')
+            ->count();
 
         // Verificar que existan participantes disponibles
-        if ($totalParticipantes === 0) {
-            throw new Exception('No hay participantes disponibles para el sorteo. Todos ya han ganado o no hay participantes registrados.');
+        if ($totalCartonesUnicos === 0) {
+            throw new Exception('No hay participantes (cartones) disponibles para el sorteo.');
         }
 
-        // Generar un índice aleatorio criptográficamente seguro
-        $indiceAleatorio = random_int(0, $totalParticipantes - 1);
+        // 2. Generar un índice aleatorio criptográficamente seguro
+        // random_int es inclusivo (min, max), por lo tanto si tenemos N elementos,
+        // los índices válidos van de 0 a N-1.
+        // Ejemplo: 3 elementos -> índices 0, 1, 2. count = 3. max = 3-1 = 2.
+        $indiceAleatorio = random_int(0, $totalCartonesUnicos - 1);
 
-        // Seleccionar el ganador usando offset + first()
-        $ganador = $query->offset($indiceAleatorio)->first();
+        // 3. Obtener el número de cartón ganador
+        $cartonGanador = $cartonesDisponibles[$indiceAleatorio];
 
-        // Verificación de seguridad
-        if (!$ganador) {
-            throw new Exception('Error inesperado al seleccionar el ganador. Por favor, intenta de nuevo.');
+        // 4. Buscar TODOS los participantes asociados a ese cartón
+        // Esto maneja el caso de múltiples registros con el mismo cartón
+        $ganadores = Participante::where('sorteo_id', $sorteoId)
+            ->where('carton_number', $cartonGanador)
+            ->get();
+
+        if ($ganadores->isEmpty()) {
+            throw new Exception('Error inesperado: El cartón sorteado no tiene participantes asociados.');
         }
 
         // Timestamp en formato ISO-8601
         $timestamp = now();
 
-        // Contar total de participantes originales para estadísticas
-        $queryTotal = Participante::query()
-            ->where('sorteo_id', $sorteoId);
+        // 5. Calcular la posición del premio (Sorteo Nro X)
+        // Contamos cuántos sorteos únicos (posiciones) ya se han realizado
+        // Usamos distinct para contar eventos de sorteo, no ganadores individuales
+        $sorteosRealizados = Participante::where('sorteo_id', $sorteoId)
+            ->whereNotNull('ganador_en')
+            ->distinct('ganador_en')
+            ->count('ganador_en');
 
-        $totalParticipantesOriginal = $queryTotal->count();
+        $posicionGanador = $sorteosRealizados + 1;
 
-        $participantesDisponibles = $totalParticipantes;
-        $ganadoresTotales = $totalParticipantesOriginal - $participantesDisponibles;
-
-        // MARCAR AL GANADOR con la posición en que salió sorteado
-        // La posición es relativa al sorteo si se especificó ID, o global si no.
-        $posicionGanador = $ganadoresTotales + 1;
-
-        // Lógica de asignación de premios inversa y límite de sorteos
+        // Lógica de asignación de premios
+        $premioNombre = 'Sin premio asignado';
+        
         if ($sorteo) {
             // Obtener posiciones de premios ordenadas descendente (Mayor a menor)
-            // Esto permite asignar primero los premios de menor jerarquía (posiciones más altas)
             $posicionesPremios = $sorteo->premios()
                 ->withPivot('posicion')
                 ->get()
@@ -93,59 +103,61 @@ class RealizarSorteo
             $totalPremios = $posicionesPremios->count();
 
             if ($totalPremios > 0) {
-                if ($ganadoresTotales >= $totalPremios) {
+                // Si ya se entregaron todos los premios definidos
+                if ($sorteosRealizados >= $totalPremios) {
                     throw new Exception('Se han sorteado todos los premios disponibles para este sorteo.');
                 }
 
                 // Asignar la posición del premio correspondiente
-                $posicionGanador = $posicionesPremios[$ganadoresTotales];
+                // Usamos $sorteosRealizados como índice
+                $posicionGanador = $posicionesPremios[$sorteosRealizados];
+                
+                // Obtener el nombre del premio
+                $premioObj = $sorteo->premios()
+                    ->wherePivot('posicion', $posicionGanador)
+                    ->first();
+                    
+                if ($premioObj) {
+                    $premioNombre = $premioObj->nombre;
+                }
             } else {
-                // Si no hay premios definidos, no permitir sorteo (según requerimiento)
                 throw new Exception('Este sorteo no tiene premios asignados para sortear.');
             }
         }
 
-        $ganador->ganador_en = $posicionGanador;
-        $ganador->save();
+        // 6. Marcar a TODOS los ganadores con el mismo cartón
+        foreach ($ganadores as $ganador) {
+            $ganador->ganador_en = $posicionGanador;
+            $ganador->save();
+        }
 
-        // Obtener el premio ganado
-        $premioGanado = $ganador->premio;
-        $premioNombre = $premioGanado ? $premioGanado->nombre : 'Sin premio asignado';
+        $totalGanadoresAfectados = $ganadores->count();
 
-        // Registrar el sorteo en los logs para auditoría completa
-        // Esto permite verificar posteriormente la integridad del proceso
-        Log::info('Sorteo realizado', [
-            'ganador_id' => $ganador->id,
-            'ganador_nombre' => $ganador->full_name,
-            'ganador_dni' => $ganador->dni,
+        // Registrar el sorteo en los logs
+        Log::info('Sorteo realizado (Deduplicación Lógica)', [
+            'carton_ganador' => $cartonGanador,
             'posicion_sorteo' => $posicionGanador,
             'premio' => $premioNombre,
-            'total_participantes' => $totalParticipantesOriginal,
-            'participantes_disponibles' => $participantesDisponibles,
-            'ganadores_anteriores' => $ganadoresTotales,
-            'indice_seleccionado' => $indiceAleatorio,
+            'total_cartones_unicos' => $totalCartonesUnicos,
+            'total_registros_brutos' => $totalRegistrosParticipantes,
+            'duplicados_filtrados' => $totalRegistrosParticipantes - $totalCartonesUnicos,
+            'ganadores_afectados_count' => $totalGanadoresAfectados,
             'timestamp' => $timestamp->toIso8601String(),
-            'probabilidad' => '1/' . $participantesDisponibles,
-            'algoritmo' => 'random_int (CSPRNG)',
+            'probabilidad_carton' => '1/' . $totalCartonesUnicos,
         ]);
 
+        // Retornar solo la información del cartón ganador y el premio
         return [
-            'winner' => [
-                'id' => $ganador->id,
-                'full_name' => $ganador->full_name,
-                'dni' => $ganador->dni,
-                'phone' => $ganador->phone,
-                'location' => $ganador->location,
-                'province' => $ganador->province,
-                'carton_number' => $ganador->carton_number,
-                'ganador_en' => $posicionGanador,
-                'premio' => $premioNombre,
-            ],
-            'total_participants' => $totalParticipantesOriginal,
-            'available_participants' => $participantesDisponibles,
-            'previous_winners' => $ganadoresTotales,
+            'carton_number' => $cartonGanador,
+            'premio' => $premioNombre,
             'posicion_sorteo' => $posicionGanador,
+            'total_ganadores' => $totalGanadoresAfectados, // Cantidad de participantes con este cartón
             'timestamp' => $timestamp->toIso8601String(),
+            'debug_info' => [
+                'total_registros' => $totalRegistrosParticipantes,
+                'total_cartones_unicos' => $totalCartonesUnicos,
+                'duplicados_ignorados' => $totalRegistrosParticipantes - $totalCartonesUnicos,
+            ]
         ];
     }
 }

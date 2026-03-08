@@ -61,4 +61,14 @@ class ParticipantesController extends Controller
             'ganador_status' => (string) $request->query('ganador_status', ''),
         ]);
     }
+
+    /**
+     * Obtener estadísticas de participantes para un sorteo.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        return \App\Actions\Participantes\GetParticipantesStats::execute([
+            'sorteo_id' => (int) $request->query('sorteo_id', 0),
+        ]);
+    }
 }

@@ -40,7 +40,7 @@ export function DrawButton({ onClick, isDrawing }: DrawButtonProps) {
                     </span>
                 ) : (
                     <span className="flex items-center gap-3">
-                        🎰 REALIZAR SORTEO
+                        REALIZAR SORTEO
                     </span>
                 )}
             </button>

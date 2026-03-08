@@ -8,7 +8,7 @@ export function InfoCard() {
             <p className="text-gray-800 text-lg md:text-xl font-medium leading-relaxed mb-4">
                 El sistema seleccionará un ganador de forma{' '}
                 <span className="font-black text-red-700">completamente aleatoria</span> entre 
-                todos los participantes registrados.
+                todos los numero de cartones registrados.
             </p>
             {/* <p className="text-gray-600 text-sm font-medium">
                 ✓ Algoritmo criptográficamente seguro<br/>

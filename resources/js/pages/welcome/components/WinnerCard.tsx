@@ -77,57 +77,39 @@ export function WinnerCard({ winner, onClose }: WinnerCardProps) {
                                 fontFamily: 'Playfair Display, serif'
                             }}
                         >
-                            ¡GANADOR!
+                            ¡CARTÓN GANADOR!
                         </h3>
                     </div>
                     
-                    {/* Winner Name - Highlighted */}
+                    {/* Winner Carton - Highlighted */}
                     <div className="w-full bg-gradient-to-br from-yellow-50 to-orange-50 rounded-[2vmin] p-[3vmin] border-2 border-yellow-200 shadow-inner shrink-0 mb-[2vmin]">
                         <p className="text-gray-500 uppercase tracking-widest font-bold mb-[1vmin]" style={{ fontSize: '1.8vmin' }}>
-                            Participante Ganador
+                            NÚMERO DE CARTÓN
                         </p>
-                        <p className="font-black text-gray-900 leading-none break-words line-clamp-2" style={{ fontSize: '6vmin' }}>
-                            {winner.winner.full_name}
+                        <p className="font-black text-gray-900 leading-none break-words line-clamp-2" style={{ fontSize: '12vmin' }}>
+                            {winner.carton_number}
                         </p>
                     </div>
                     
                     {/* Details Grid - Responsive Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-[1.5vmin] w-full overflow-y-auto pr-2" style={{ maxHeight: '30vh' }}>
-                        <InfoItem label="DNI" value={winner.winner.dni} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-[1.5vmin] w-full overflow-y-auto pr-2 justify-center max-w-4xl" style={{ maxHeight: '30vh' }}>
                         
-                        {winner.winner.carton_number && (
-                            <InfoItem label="Cartón N°" value={winner.winner.carton_number} />
-                        )}
+                        <InfoItem label="Posición Sorteo" value={`#${winner.posicion_sorteo}`} />
                         
-                        {winner.winner.phone && (
-                            <InfoItem label="Teléfono" value={winner.winner.phone} />
-                        )}
+                        <InfoItem label="Premio Asignado" value={winner.premio} />
                         
-                        {winner.winner.location && (
-                            <InfoItem label="Localidad" value={winner.winner.location} />
-                        )}
-                        
-                        {winner.winner.province && (
-                            <InfoItem label="Provincia" value={winner.winner.province} />
-                        )}
-                        
-                        {winner.winner.premio && (
-                            <InfoItem label="Premio" value={winner.winner.premio} />
-                        )}
                     </div>
 
                     {/* Footer Stats */}
                     <div className="mt-[2vmin] flex flex-wrap items-center justify-center gap-[1.5vmin] shrink-0">
-                        <div className="bg-gray-100 rounded-full px-[2vmin] py-[0.8vmin] border border-gray-200">
-                            <span className="text-gray-600 font-medium" style={{ fontSize: '1.5vmin' }}>
-                                Total: <span className="text-gray-900 font-bold">{winner.total_participants}</span>
-                            </span>
-                        </div>
-                        <div className="bg-gray-100 rounded-full px-[2vmin] py-[0.8vmin] border border-gray-200">
-                            <span className="text-gray-600 font-medium" style={{ fontSize: '1.5vmin' }}>
-                                Disp: <span className="text-green-700 font-bold">{winner.available_participants}</span>
-                            </span>
-                        </div>
+                        {winner.total_ganadores > 1 && (
+                             <div className="bg-yellow-100 rounded-full px-[2vmin] py-[0.8vmin] border border-yellow-200 animate-pulse">
+                                <span className="text-yellow-800 font-bold" style={{ fontSize: '1.5vmin' }}>
+                                    ⚠️ {winner.total_ganadores} Ganadores con este cartón
+                                </span>
+                            </div>
+                        )}
+                        
                         <div className="bg-gray-100 rounded-full px-[2vmin] py-[0.8vmin] border border-gray-200">
                             <span className="text-gray-600 font-medium" style={{ fontSize: '1.5vmin' }}>
                                 📅 {new Date(winner.timestamp).toLocaleDateString('es-AR')}

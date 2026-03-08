@@ -3,6 +3,7 @@ import PageWrapper from "@/components/PageWrapper";
 import { BreadcrumbItem } from "@/types";
 import ImportCSV from "./components/importcsv";
 import ParticipantesList from "./components/participantesList";
+import { ParticipantesStats } from "./components/ParticipantesStats";
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -18,6 +19,7 @@ export default function Participantes() {
                 title="Participantes"
                 description="Mantén un registro de todos los participantes en tu sorteo."
             >
+                <ParticipantesStats />
                 <ImportCSV />
                 <ParticipantesList />
             </PageWrapper>

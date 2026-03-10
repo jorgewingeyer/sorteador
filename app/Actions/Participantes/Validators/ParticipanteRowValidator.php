@@ -20,12 +20,12 @@ abstract class ParticipanteRowValidator extends Action
     {
         $v = Validator::make($data, [
             'sorteo_id' => ['required', 'integer', 'exists:sorteos,id'],
-            'dni' => ['required', 'string', 'max:32'],
+            'dni' => ['required', 'string', 'max:64'],
             'full_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:64'],
             'location' => ['nullable', 'string', 'max:255'],
             'province' => ['nullable', 'string', 'max:255'],
-            'carton_number' => ['nullable', 'string', 'max:64'],
+            'carton_number' => ['required', 'string', 'max:128'],
         ]);
 
         if ($v->fails()) {

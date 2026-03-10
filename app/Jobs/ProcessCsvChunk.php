@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Participantes\Transformers\CsvParticipanteTransformer;
 use App\Actions\Participantes\Validators\ParticipanteRowValidator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -34,8 +35,11 @@ class ProcessCsvChunk implements ShouldQueue
         $failed = 0;
         $now = now();
 
-        foreach ($this->chunk as $mapped) {
+        foreach ($this->chunk as $row) {
             try {
+                // Transform row using the existing Transformer logic which handles sanitization and mapping
+                $mapped = CsvParticipanteTransformer::execute($row, $this->sorteoId);
+
                 $validation = ParticipanteRowValidator::execute($mapped);
 
                 if (! $validation['valid']) {
@@ -48,16 +52,18 @@ class ProcessCsvChunk implements ShouldQueue
                 $batch[] = $mapped;
             } catch (\Throwable $e) {
                 $failed++;
-                Log::error('Error processing CSV row in job', ['error' => $e->getMessage(), 'row' => $mapped]);
+                Log::error('Error processing CSV row in job', ['error' => $e->getMessage(), 'row' => $row]);
             }
         }
 
         if (! empty($batch)) {
-            DB::table('participantes')->insert($batch);
+            // Usamos insertOrIgnore para manejar la lógica incremental
+            // Si el registro (sorteo_id, dni, carton_number) ya existe, se ignora.
+            DB::table('inscriptos')->insertOrIgnore($batch);
         }
 
         Log::info('CSV Chunk processed', [
-            'inserted' => count($batch),
+            'processed_rows' => count($batch),
             'failed' => $failed,
             'sorteo_id' => $this->sorteoId,
         ]);

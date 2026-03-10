@@ -8,6 +8,15 @@ export interface SorteoEstado {
   variant: SorteoEstadoVariant
 }
 
+export interface InstanciaSorteoItem {
+  id: number
+  nombre: string
+  fecha_ejecucion: string | null
+  estado: string
+  sorteo_id: number
+  created_at: string
+}
+
 export interface SorteoItem {
   id: number
   nombre: string
@@ -15,6 +24,7 @@ export interface SorteoItem {
   estado: SorteoEstado
   status: boolean
   created_at: string | null
+  instancias?: InstanciaSorteoItem[]
 }
 
 export interface SorteoQueryParams {

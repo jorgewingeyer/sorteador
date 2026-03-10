@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Sorteo\GetAllSorteos;
-use App\Actions\Sorteo\RealizarSorteo;
+use App\Actions\Sorteo\ExecuteSorteoAction;
 use App\Actions\Sorteo\ResetearGanadores;
 use App\Actions\Sorteo\StoreSorteo;
 use App\Actions\Sorteo\ToggleSorteoStatus;
@@ -20,6 +20,7 @@ use App\Http\Requests\Sorteo\StoreRequest;
 use App\Http\Resources\SorteoResource;
 use App\Http\Resources\Premios\PremioResource;
 use App\Models\Sorteo;
+use App\Models\InstanciaSorteo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,22 +89,28 @@ class SorteoController extends Controller
     }
 
     /**
-     * Realiza un sorteo aleatorio entre todos los participantes.
+     * Realiza un sorteo aleatorio para una instancia específica.
      */
     public function realizar(Request $request): JsonResponse
     {
         try {
-            $sorteoId = $request->input('sorteo_id');
-            // Allow numeric ID or null
-            $sorteoId = is_numeric($sorteoId) ? (int) $sorteoId : null;
+            $instanciaId = $request->input('instancia_sorteo_id');
+            
+            if (!$instanciaId || !is_numeric($instanciaId)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Debe especificar una instancia de sorteo válida.'
+                ], 400);
+            }
 
-            $resultado = RealizarSorteo::execute($sorteoId);
+            $resultado = ExecuteSorteoAction::execute((int) $instanciaId);
 
             return response()->json($resultado);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage(),
-            ], 400);
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 

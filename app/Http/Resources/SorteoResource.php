@@ -57,6 +57,9 @@ class SorteoResource extends JsonResource
             'premios' => $this->whenLoaded('premios', function () {
                 return PremioResource::collection($this->premios)->resolve();
             }),
+            'instancias' => $this->whenLoaded('instancias', function () {
+                return InstanciaSorteoResource::collection($this->instancias)->resolve();
+            }),
         ];
     }
 }

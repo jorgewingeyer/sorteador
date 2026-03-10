@@ -18,7 +18,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import SorteoController from "@/actions/App/Http/Controllers/SorteoController"
 import type { PremioItem, PremioListResponse } from "@/types/premios"
-import { GripVertical, Trash2, Plus, CheckCircle2, AlertCircle } from "lucide-react"
+import { GripVertical, Trash2, Plus, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react"
+import InstanciasList from "./InstanciasList"
+import React from "react"
 
 export default function SorteoList({ listSorteos, premios }: SorteoListProps & { premios?: PremioListResponse | null }) {
   const [data, setData] = useState<SorteoListResponse | null>(listSorteos ?? null)
@@ -37,6 +39,17 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
   const [addPos, setAddPos] = useState<string>("")
   const [modalMsg, setModalMsg] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+
+  const toggleRow = (id: number) => {
+    const next = new Set(expandedRows)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    setExpandedRows(next)
+  }
 
   const query = useMemo(() => ({ page, per_page: perPage, sort, direction }), [page, perPage, sort, direction])
 
@@ -231,39 +244,55 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
               </TableRow>
             )}
             {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.fecha}</TableCell>
-                <TableCell>{item.nombre}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={item.status}
-                      onCheckedChange={(v) => toggleStatus(item, v)}
-                    />
-                    <Badge variant={item.estado.variant}>{item.estado.label}</Badge>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const url = participantes({ query: { sorteo_id: String(item.id) } }).url
-                      router.visit(url, { preserveScroll: true })
-                    }}
-                  >
-                    Ver
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEditor(item)}
-                    className="ml-1"
-                  >
-                    Editar Premios
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <React.Fragment key={item.id}>
+                <TableRow className={expandedRows.has(item.id) ? "border-b-0 bg-muted/50" : ""}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => toggleRow(item.id)}>
+                        {expandedRows.has(item.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                      {item.fecha}
+                    </div>
+                  </TableCell>
+                  <TableCell>{item.nombre}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={item.status}
+                        onCheckedChange={(v) => toggleStatus(item, v)}
+                      />
+                      <Badge variant={item.estado.variant}>{item.estado.label}</Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const url = participantes({ query: { sorteo_id: String(item.id) } }).url
+                        router.visit(url, { preserveScroll: true })
+                      }}
+                    >
+                      Ver
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditor(item)}
+                      className="ml-1"
+                    >
+                      Editar Premios
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                {expandedRows.has(item.id) && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="p-0">
+                      <InstanciasList sorteoId={item.id} instancias={item.instancias ?? []} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
             ))}
           </TableBody>
         </Table>

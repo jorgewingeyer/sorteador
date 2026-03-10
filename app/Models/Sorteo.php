@@ -3,26 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sorteo extends Model
 {
-    protected $fillable = ['nombre', 'fecha', 'status'];
+    protected $fillable = ['nombre', 'descripcion', 'is_active'];
 
     protected $casts = [
-        'status' => 'boolean',
-        'fecha' => 'date',
+        'is_active' => 'boolean',
     ];
 
-    public function participantes()
+    public function instancias(): HasMany
     {
-        return $this->hasMany(Participante::class);
+        return $this->hasMany(InstanciaSorteo::class);
     }
 
-    public function premios()
+    public function inscriptos(): HasMany
     {
-        return $this->belongsToMany(Premio::class, 'premio_sorteo')
-            ->withPivot('posicion')
-            ->withTimestamps();
+        return $this->hasMany(Inscripto::class);
     }
-    //
 }

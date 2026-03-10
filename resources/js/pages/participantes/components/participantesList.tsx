@@ -10,7 +10,6 @@ import { usePage } from "@inertiajs/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResetWinnersDialog } from "@/components/ResetWinnersDialog";
 import { WinnerBadge } from "@/components/WinnerBadge";
-import { DebugFilter } from "@/components/DebugFilter";
 
 interface ParticipanteItem {
   id: number;
@@ -39,7 +38,7 @@ interface ParticipanteListResponse {
   error?: { message: string };
 }
 
-export default function ParticipantesList() {
+export default function ParticipantesList({ initialSorteoId }: { initialSorteoId?: string | number | null }) {
   const pageCtx = usePage();
   const [data, setData] = useState<ParticipanteListResponse | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -49,7 +48,7 @@ export default function ParticipantesList() {
 
   const [q, setQ] = useState<string>("");
   const [qInput, setQInput] = useState<string>("");
-  const [sorteoId, setSorteoId] = useState<string>("");
+  const [sorteoId, setSorteoId] = useState<string>(initialSorteoId ? String(initialSorteoId) : "");
   const [ganadorStatus, setGanadorStatus] = useState<string>("");
   const [sorteos, setSorteos] = useState<Array<{ id: number; nombre: string }>>([]);
 
@@ -57,7 +56,7 @@ export default function ParticipantesList() {
   const [error, setError] = useState<string | null>(null);
 
   const query = useMemo(() => {
-    const params: Record<string, any> = { 
+    const params: Record<string, string | number> = { 
       page, 
       per_page: perPage, 
       sort, 
@@ -96,7 +95,7 @@ export default function ParticipantesList() {
     if (raw) {
       const url = new URL(raw, window.location.origin);
       const sid = url.searchParams.get("sorteo_id") ?? "";
-      if (sid) {
+      if (sid && !initialSorteoId) {
         setSorteoId(sid);
       }
       const qParam = url.searchParams.get("q");

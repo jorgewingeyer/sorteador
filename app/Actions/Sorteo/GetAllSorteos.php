@@ -58,7 +58,7 @@ abstract class GetAllSorteos extends Action
 
             $query->orderBy($sort, $direction);
 
-            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+            $paginator = $query->with(['instancias'])->paginate($perPage, ['*'], 'page', $page);
 
             return SorteoResource::collection($paginator)
                 ->additional(['status' => 'ok'])

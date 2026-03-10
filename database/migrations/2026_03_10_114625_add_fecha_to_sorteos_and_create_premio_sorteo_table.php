@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sorteos', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
-            $table->date('fecha');
-            $table->boolean('status')->default(false);
-            $table->timestamps();
+        Schema::table('sorteos_and_create_premio_sorteo', function (Blueprint $table) {
+            //
         });
     }
 
@@ -25,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sorteos');
+        Schema::table('sorteos_and_create_premio_sorteo', function (Blueprint $table) {
+            //
+        });
     }
 };

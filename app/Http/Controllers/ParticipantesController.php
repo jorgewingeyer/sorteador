@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Participantes\GetAllParticipantes;
 use App\Actions\Participantes\ImportParticipantesFromCSV;
 use App\Http\Requests\Participantes\ImportRequest;
+use App\Models\ImportLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,16 @@ class ParticipantesController extends Controller
 {
     public function index(Request $request)
     {
-        return Inertia::render('participantes/participantes');
+        $sorteoId = $request->query('sorteo_id');
+        $sorteo = null;
+        if ($sorteoId) {
+            $sorteo = \App\Models\Sorteo::find($sorteoId);
+        }
+        
+        return Inertia::render('participantes/participantes', [
+            'sorteoId' => $sorteoId,
+            'sorteo' => $sorteo ? new \App\Http\Resources\SorteoResource($sorteo) : null,
+        ]);
     }
 
     /**
@@ -70,5 +80,24 @@ class ParticipantesController extends Controller
         return \App\Actions\Participantes\GetParticipantesStats::execute([
             'sorteo_id' => (int) $request->query('sorteo_id', 0),
         ]);
+    }
+
+    /**
+     * Get import logs for a sorteo.
+     */
+    public function logs(Request $request): JsonResponse
+    {
+        $sorteoId = $request->query('sorteo_id');
+        
+        if (!$sorteoId) {
+            return response()->json(['data' => []]);
+        }
+
+        $logs = ImportLog::where('sorteo_id', $sorteoId)
+            ->with('user:id,name')
+            ->latest()
+            ->paginate(10);
+            
+        return response()->json($logs);
     }
 }

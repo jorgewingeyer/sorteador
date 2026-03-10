@@ -20,6 +20,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Sorteos
     Route::get('sorteo', [SorteoController::class, 'index'])->name('sorteo');
     Route::post('sorteo', [SorteoController::class, 'store'])->name('sorteo.store');
+    Route::post('sorteo/{sorteo}/instancias', [\App\Http\Controllers\InstanciaSorteoController::class, 'store'])->name('sorteo.instancias.store');
+    
+    // Instancias de Sorteo
+    Route::prefix('instancias')->name('instancias.')->group(function () {
+        Route::get('{instancia}', [\App\Http\Controllers\InstanciaSorteoController::class, 'show'])->name('show');
+        Route::post('{instancia}/clean', [\App\Http\Controllers\InstanciaSorteoController::class, 'clean'])->name('clean');
+        Route::post('{instancia}/execute', [\App\Http\Controllers\InstanciaSorteoController::class, 'execute'])->name('execute');
+    });
+
     Route::get('sorteo/list', [SorteoController::class, 'list'])->name('sorteo.list');
     Route::post('sorteo/resetear-ganadores', [SorteoController::class, 'resetearGanadores'])->name('sorteo.resetear');
     Route::post('sorteo/{sorteo}/premios', [SorteoController::class, 'updatePremios'])->name('sorteo.updatePremios');
@@ -38,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('participantes/import', [ParticipantesController::class, 'import'])->name('participantes.import');
     Route::get('participantes/list', [ParticipantesController::class, 'list'])->name('participantes.list');
     Route::get('participantes/stats', [ParticipantesController::class, 'stats'])->name('participantes.stats');
+    Route::get('participantes/logs', [ParticipantesController::class, 'logs'])->name('participantes.logs');
 });
 
 require __DIR__ . '/settings.php';

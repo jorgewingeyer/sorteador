@@ -16,12 +16,12 @@ import ParticipantesController from "@/actions/App/Http/Controllers/Participante
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { SorteoItem, SorteoListResponse } from "@/types/sorteo";
 
-export default function ImportCSV() {
+export default function ImportCSV({ initialSorteoId }: { initialSorteoId?: string | number | null }) {
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const [sorteos, setSorteos] = useState<SorteoItem[]>([]);
-  const [sorteoId, setSorteoId] = useState<string>("");
+  const [sorteoId, setSorteoId] = useState<string>(initialSorteoId ? String(initialSorteoId) : "");
   const [loading, setLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 

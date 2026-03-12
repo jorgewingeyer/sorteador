@@ -5,6 +5,7 @@ import ImportCSV from "./components/importcsv";
 import ParticipantesList from "./components/participantesList";
 import { ParticipantesStats } from "./components/ParticipantesStats";
 import ImportLogsList from "./components/ImportLogsList";
+import SelectSorteo from "./components/SelectSorteo";
 import { SorteoItem } from "@/types/sorteo";
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -17,19 +18,29 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Props {
     sorteoId?: string | number | null;
     sorteo?: SorteoItem;
+    sorteos: SorteoItem[];
+    participantes?: any; // Will type properly in ParticipantesList
 }
 
-export default function Participantes({ sorteoId, sorteo }: Props) {
+export default function Participantes({ sorteoId, sorteo, sorteos, participantes }: Props) {
+    if (!sorteoId) {
+        return (
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <SelectSorteo sorteos={sorteos} />
+            </AppLayout>
+        );
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <PageWrapper
                 title={sorteo ? `Participantes: ${sorteo.nombre}` : "Participantes"}
                 description="Mantén un registro de todos los participantes en tu sorteo."
             >
-                <ParticipantesStats />
+                <ParticipantesStats sorteoId={Number(sorteoId)} />
                 <ImportCSV initialSorteoId={sorteoId} />
                 <ImportLogsList sorteoId={sorteoId} />
-                <ParticipantesList initialSorteoId={sorteoId} />
+                <ParticipantesList initialSorteoId={sorteoId} initialData={participantes} sorteos={sorteos} />
             </PageWrapper>
         </AppLayout>
     )

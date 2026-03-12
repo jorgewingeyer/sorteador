@@ -15,7 +15,7 @@ class StoreSorteo extends Action
     {
         $sorteo = Sorteo::create([
             'nombre' => $data['nombre'],
-            'fecha' => $data['fecha'],
+            'descripcion' => $data['descripcion'] ?? null,
         ]);
 
         event(new SorteoCreated($sorteo));

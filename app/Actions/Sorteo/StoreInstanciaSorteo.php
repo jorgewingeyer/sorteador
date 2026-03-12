@@ -3,6 +3,7 @@
 namespace App\Actions\Sorteo;
 
 use App\Actions\Action;
+use App\Enums\InstanciaStatus;
 use App\Models\InstanciaSorteo;
 use App\Models\Sorteo;
 use Carbon\Carbon;
@@ -21,7 +22,7 @@ class StoreInstanciaSorteo extends Action
         $instancia = $sorteo->instancias()->create([
             'nombre' => $data['nombre'],
             'fecha_ejecucion' => Carbon::parse($data['fecha_ejecucion']),
-            'estado' => 'pendiente',
+            'estado' => InstanciaStatus::Pendiente,
         ]);
 
         return $instancia;

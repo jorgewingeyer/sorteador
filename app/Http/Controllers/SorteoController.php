@@ -34,7 +34,7 @@ class SorteoController extends Controller
         $response = GetAllSorteos::execute([
             'page' => 1,
             'per_page' => (int) $request->query('per_page', 10),
-            'sort' => 'fecha',
+            'sort' => 'created_at',
             'direction' => 'desc',
         ]);
         $premios = GetAllPremios::execute([
@@ -47,7 +47,6 @@ class SorteoController extends Controller
         return Inertia::render('sorteo/sorteo', [
             'listSorteos' => $response->getData(true),
             'premios' => PremioResource::collection($premios)->response()->getData(true),
-            'createdSorteoId' => $request->session()->get('created_sorteo_id'),
         ]);
     }
 
@@ -56,18 +55,15 @@ class SorteoController extends Controller
         return GetAllSorteos::execute([
             'page' => (int) $request->query('page', 1),
             'per_page' => (int) $request->query('per_page', 15),
-            'sort' => (string) $request->query('sort', 'fecha'),
+            'sort' => (string) $request->query('sort', 'created_at'),
             'direction' => (string) $request->query('direction', 'desc'),
             'nombre' => (string) $request->query('nombre', ''),
-            'fecha_from' => (string) $request->query('fecha_from', ''),
-            'fecha_to' => (string) $request->query('fecha_to', ''),
-            'estado' => (string) $request->query('estado', ''),
         ]);
     }
 
     public function show(Sorteo $sorteo): JsonResponse
     {
-        return (new SorteoResource($sorteo->load('premios')))
+        return (new SorteoResource($sorteo->load('instancias')))
             ->additional(['status' => 'ok'])
             ->response();
     }

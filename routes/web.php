@@ -27,15 +27,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('{instancia}', [\App\Http\Controllers\InstanciaSorteoController::class, 'show'])->name('show');
         Route::post('{instancia}/clean', [\App\Http\Controllers\InstanciaSorteoController::class, 'clean'])->name('clean');
         Route::post('{instancia}/execute', [\App\Http\Controllers\InstanciaSorteoController::class, 'execute'])->name('execute');
+        Route::post('{instancia}/premios/add', [\App\Http\Controllers\InstanciaSorteoController::class, 'addPremio'])->name('premios.add');
+        Route::delete('{instancia}/premios/remove', [\App\Http\Controllers\InstanciaSorteoController::class, 'removePremio'])->name('premios.remove');
     });
 
     Route::get('sorteo/list', [SorteoController::class, 'list'])->name('sorteo.list');
     Route::post('sorteo/resetear-ganadores', [SorteoController::class, 'resetearGanadores'])->name('sorteo.resetear');
-    Route::post('sorteo/{sorteo}/premios', [SorteoController::class, 'updatePremios'])->name('sorteo.updatePremios');
+    // Route::post('sorteo/{sorteo}/premios', [SorteoController::class, 'updatePremios'])->name('sorteo.updatePremios');
     Route::get('sorteo/{sorteo}', [SorteoController::class, 'show'])->name('sorteo.show');
-    Route::post('sorteo/{sorteo}/premios/add', [SorteoController::class, 'addPremio'])->name('sorteo.premios.add');
-    Route::delete('sorteo/{sorteo}/premios/remove', [SorteoController::class, 'removePremio'])->name('sorteo.premios.remove');
-    Route::patch('sorteo/{sorteo}/premios/reorder', [SorteoController::class, 'reorderPremios'])->name('sorteo.premios.reorder');
+    // Route::post('sorteo/{sorteo}/premios/add', [SorteoController::class, 'addPremio'])->name('sorteo.premios.add');
+    // Route::delete('sorteo/{sorteo}/premios/remove', [SorteoController::class, 'removePremio'])->name('sorteo.premios.remove');
+    // Route::patch('sorteo/{sorteo}/premios/reorder', [SorteoController::class, 'reorderPremios'])->name('sorteo.premios.reorder');
     Route::post('sorteo/{sorteo}/toggle-status', [SorteoController::class, 'toggleStatus'])->name('sorteo.toggleStatus');
 
     // Premios

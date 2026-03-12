@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('sorteos_and_create_premio_sorteo', function (Blueprint $table) {
-            //
+        Schema::table('ganadores', function (Blueprint $table) {
+            $table->foreignId('user_id')->nullable()->after('inscripto_id')->constrained('users')->nullOnDelete();
         });
     }
 
@@ -21,8 +21,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sorteos_and_create_premio_sorteo', function (Blueprint $table) {
-            //
+        Schema::table('ganadores', function (Blueprint $table) {
+            $table->dropForeign(['user_id']);
+            $table->dropColumn('user_id');
         });
     }
 };

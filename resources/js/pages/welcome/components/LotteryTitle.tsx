@@ -1,10 +1,15 @@
 const LOGO_PATH = '/storage/logoLoteria.png';
 
+interface LotteryTitleProps {
+    title?: string | null;
+    subtitle?: string | null;
+}
+
 /**
  * Componente de título y logo de la lotería
  * Responsabilidad única: mostrar branding principal
  */
-export function LotteryTitle() {
+export function LotteryTitle({ title, subtitle }: LotteryTitleProps) {
     return (
         <div className="text-center mb-8">
             {/* Logos */}
@@ -27,12 +32,12 @@ export function LotteryTitle() {
                 className="text-5xl md:text-7xl font-black text-white mb-3 text-with-stroke tracking-tight" 
                 style={{ fontFamily: 'Playfair Display, serif' }}
             >
-                Sorteo Oficial
+                {title || "Sorteo Oficial"}
             </h1>
             
             {/* Subtitle */}
             <h2 className="text-3xl md:text-4xl font-bold text-yellow-300 mb-4 drop-shadow-xl">
-                Lotería Chaqueña
+                {subtitle || "Lotería Chaqueña"}
             </h2>
         </div>
     );

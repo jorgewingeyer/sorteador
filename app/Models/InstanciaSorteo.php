@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\InstanciaStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,6 +21,7 @@ class InstanciaSorteo extends Model
 
     protected $casts = [
         'fecha_ejecucion' => 'datetime',
+        'estado' => InstanciaStatus::class,
     ];
 
     public function sorteo(): BelongsTo

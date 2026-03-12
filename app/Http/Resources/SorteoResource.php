@@ -20,43 +20,15 @@ class SorteoResource extends JsonResource
      */
     public function toArray($request): array
     {
-        $fecha = $this->fecha instanceof Carbon ? $this->fecha : (is_string($this->fecha) ? Carbon::parse($this->fecha) : null);
-
-        $today = now()->startOfDay();
-        $estado = 'pendiente';
-        if ($fecha instanceof Carbon) {
-            if ($fecha->isSameDay($today)) {
-                $estado = 'hoy';
-            } elseif ($fecha->lt($today)) {
-                $estado = 'completado';
-            }
-        }
-
-        // Map to badge variants used by UI
-        $variant = match ($estado) {
-            'completado' => 'secondary',
-            'hoy' => 'default',
-            default => 'outline',
-        };
-
         return [
             'id' => $this->id,
             'nombre' => $this->nombre,
-            'fecha' => $fecha instanceof Carbon ? $fecha->format('d/m/Y') : '',
-            'estado' => [
-                'code' => $estado,
-                'label' => match ($estado) {
-                    'completado' => 'Completado',
-                    'hoy' => 'Hoy',
-                    default => 'Pendiente',
-                },
-                'variant' => $variant,
-            ],
-            'status' => (bool) $this->status,
+            'descripcion' => $this->descripcion,
+            'is_active' => (bool) $this->is_active,
             'created_at' => optional($this->created_at)->toISOString(),
-            'premios' => $this->whenLoaded('premios', function () {
-                return PremioResource::collection($this->premios)->resolve();
-            }),
+            // Remove 'premios' if prizes are now on instances, or keep it if we want to show all prizes across all instances?
+            // The plan says prizes are on instances. But maybe we want to show them?
+            // For now, let's remove it to avoid errors if the relation doesn't exist.
             'instancias' => $this->whenLoaded('instancias', function () {
                 return InstanciaSorteoResource::collection($this->instancias)->resolve();
             }),

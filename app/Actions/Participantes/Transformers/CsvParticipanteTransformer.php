@@ -46,7 +46,14 @@ abstract class CsvParticipanteTransformer extends Action
         $province = self::sanitize($rowByHeader['provincia'] ?? $rowByHeader['Provincia'] ?? $rowByHeader['province'] ?? '');
 
         // Support various header names for carton number
-        $carton = self::sanitize($rowByHeader['nro_carton'] ?? $rowByHeader['Nro. Carton'] ?? $rowByHeader['Nro. Cartón'] ?? $rowByHeader['carton'] ?? $rowByHeader['carton_number'] ?? '');
+        // Keys are normalized in ImportParticipantesFromCSV (lowercase, no spaces, no dots, unaccented)
+        $carton = self::sanitize(
+            $rowByHeader['nro_carton'] ?? 
+            $rowByHeader['nro_cartn'] ?? // Fallback for bad encoding
+            $rowByHeader['carton'] ?? 
+            $rowByHeader['carton_number'] ?? 
+            ''
+        );
         
         return [
             'sorteo_id' => $sorteoId,

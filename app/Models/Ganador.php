@@ -15,8 +15,14 @@ class Ganador extends Model
         'carton_number',
         'premio_instancia_id',
         'winning_position',
-        'inscripto_id'
+        'inscripto_id',
+        'user_id'
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function instanciaSorteo(): BelongsTo
     {

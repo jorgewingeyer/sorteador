@@ -18,7 +18,7 @@ class StoreRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'min:3', 'max:255'],
-            'fecha' => ['required', 'date'],
+            'descripcion' => ['nullable', 'string'],
         ];
     }
 
@@ -28,9 +28,6 @@ class StoreRequest extends FormRequest
             'nombre.required' => 'El nombre es requerido',
             'nombre.min' => 'El nombre debe tener al menos 3 caracteres',
             'nombre.max' => 'El nombre no puede tener más de 255 caracteres',
-            'fecha.required' => 'La fecha es requerida',
-            'fecha.date' => 'La fecha debe ser una fecha válida',
-            'fecha.after' => 'La fecha debe ser posterior a hoy',
         ];
     }
 }

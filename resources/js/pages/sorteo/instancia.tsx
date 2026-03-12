@@ -9,22 +9,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, CheckCircle, RefreshCcw, Play, Trophy } from "lucide-react";
 import { useState } from "react";
+import InstanciaPremiosForm from "./components/InstanciaPremiosForm";
+import type { PremioItem } from "@/types/premios";
+import instancias from "@/routes/instancias";
 
 interface Ganador {
     id: number;
     carton_number: string;
     premio: { nombre: string; posicion: number };
     participante?: { full_name: string; dni: string };
+    inscripto?: { full_name: string; dni: string };
+    premio_instancia?: { premio: { nombre: string } };
+    winning_position?: number;
 }
 
 interface InstanciaPageProps {
-    instancia: InstanciaSorteoItem;
+    instancia: InstanciaSorteoItem & { premios?: PremioItem[] };
     sorteo: SorteoItem;
     participantsCount: number;
     ganadores: Ganador[];
+    premios: PremioItem[];
 }
 
-export default function InstanciaPage({ instancia, sorteo, participantsCount, ganadores }: InstanciaPageProps) {
+export default function InstanciaPage({ instancia, sorteo, participantsCount, ganadores, premios }: InstanciaPageProps) {
     const [loading, setLoading] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -36,7 +43,7 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
     const handleClean = () => {
         if (!confirm("¿Estás seguro de limpiar y recargar participantes? Esto eliminará la lista actual de participantes habilitados para esta instancia.")) return;
         setLoading(true);
-        router.post(`/instancias/${instancia.id}/clean`, {}, {
+        router.post(instancias.clean.url({ instancia: instancia.id }), {}, {
             onFinish: () => setLoading(false)
         });
     };
@@ -44,7 +51,7 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
     const handleExecute = () => {
         if (!confirm("¿Estás seguro de ejecutar el sorteo? Se seleccionarán ganadores aleatoriamente.")) return;
         setLoading(true);
-        router.post(`/instancias/${instancia.id}/execute`, {}, {
+        router.post(instancias.execute.url({ instancia: instancia.id }), {}, {
             onFinish: () => setLoading(false)
         });
     };
@@ -91,13 +98,22 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
                         <RefreshCcw className="mr-2 h-4 w-4" />
                         Limpiar y Cargar Participantes
                     </Button>
-                    <Button onClick={handleExecute} disabled={loading || participantsCount === 0}>
+                    <Button onClick={handleExecute} disabled={loading || participantsCount === 0 || instancia.estado === 'finalizada'}>
                         <Play className="mr-2 h-4 w-4" />
                         Ejecutar Sorteo
                     </Button>
                 </div>
 
-                <PageSection title="Ganadores" description="Lista de ganadores de esta instancia.">
+                <InstanciaPremiosForm 
+                    instancia={instancia} 
+                    availablePremios={premios} 
+                />
+
+                <PageSection 
+                    title="Ganadores" 
+                    description="Lista de ganadores de esta instancia."
+                    size="full"
+                    >
                     <div className="rounded-md border">
                         <Table>
                             <TableHeader>
@@ -112,21 +128,21 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
                                 {ganadores.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                                            No hay ganadores aún.
+                                            No hay ganadores registrados aún.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     ganadores.map((ganador) => (
                                         <TableRow key={ganador.id}>
-                                            <TableCell className="font-bold">{ganador.premio.posicion}</TableCell>
-                                            <TableCell>{ganador.premio.nombre}</TableCell>
+                                            <TableCell className="font-bold">#{ganador.winning_position || '?'}</TableCell>
+                                            <TableCell>{ganador.premio_instancia?.premio?.nombre || 'Premio'}</TableCell>
                                             <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium">{ganador.participante?.full_name ?? 'Desconocido'}</span>
-                                                    <span className="text-xs text-muted-foreground">{ganador.participante?.dni}</span>
-                                                </div>
+                                                <div className="font-medium">{ganador.inscripto?.full_name || 'Desconocido'}</div>
+                                                <div className="text-xs text-muted-foreground">{ganador.inscripto?.dni}</div>
                                             </TableCell>
-                                            <TableCell className="font-mono">{ganador.carton_number}</TableCell>
+                                            <TableCell>
+                                                <div className="font-medium">{ganador.carton_number || '?'}</div>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}

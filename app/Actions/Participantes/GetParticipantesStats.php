@@ -3,7 +3,7 @@
 namespace App\Actions\Participantes;
 
 use App\Actions\Action;
-use App\Models\Participante;
+use App\Models\Inscripto;
 use App\Models\Sorteo;
 use Illuminate\Http\JsonResponse;
 
@@ -27,7 +27,7 @@ class GetParticipantesStats extends Action
             ]);
         }
 
-        $query = Participante::where('sorteo_id', $sorteoId);
+        $query = Inscripto::where('sorteo_id', $sorteoId);
 
         $totalRegistros = $query->count();
         

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\Participantes\Transformers\CsvParticipanteTransformer;
 use App\Actions\Participantes\Validators\ParticipanteRowValidator;
+use App\Models\ImportLog;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,7 +24,8 @@ class ProcessCsvChunk implements ShouldQueue
      */
     public function __construct(
         public array $chunk,
-        public int $sorteoId
+        public int $sorteoId,
+        public int $importLogId
     ) {}
 
     /**
@@ -31,6 +33,8 @@ class ProcessCsvChunk implements ShouldQueue
      */
     public function handle(): void
     {
+        Log::info('Job ProcessCsvChunk started', ['rows' => count($this->chunk), 'sorteo_id' => $this->sorteoId]);
+
         $batch = [];
         $failed = 0;
         $now = now();
@@ -56,15 +60,34 @@ class ProcessCsvChunk implements ShouldQueue
             }
         }
 
+        $insertedCount = 0;
         if (! empty($batch)) {
-            // Usamos insertOrIgnore para manejar la lógica incremental
-            // Si el registro (sorteo_id, dni, carton_number) ya existe, se ignora.
-            DB::table('inscriptos')->insertOrIgnore($batch);
+            try {
+                // Usamos insertOrIgnore para manejar la lógica incremental
+                // Si el registro (sorteo_id, dni, carton_number) ya existe, se ignora.
+                $insertedCount = DB::table('inscriptos')->insertOrIgnore($batch);
+                Log::info('Batch inserted', ['count' => count($batch), 'result' => $insertedCount]);
+            } catch (\Throwable $e) {
+                Log::error('Database insert failed in job', ['error' => $e->getMessage()]);
+                throw $e; // Retry job
+            }
+        }
+
+        // Update import log
+        try {
+            $log = ImportLog::find($this->importLogId);
+            if ($log) {
+                $log->increment('imported_rows', $insertedCount);
+                $log->increment('skipped_rows', $failed + (count($batch) - $insertedCount));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to update import log', ['error' => $e->getMessage()]);
         }
 
         Log::info('CSV Chunk processed', [
             'processed_rows' => count($batch),
             'failed' => $failed,
+            'inserted' => $insertedCount,
             'sorteo_id' => $this->sorteoId,
         ]);
     }

@@ -54,7 +54,11 @@ export default function ImportLogsList({ sorteoId }: { sorteoId?: string | numbe
   if (!sorteoId) return null
 
   return (
-    <PageSection title="Historial de Importaciones" description="Registro de archivos importados.">
+    <PageSection 
+        title="Historial de Importaciones" 
+        description="Registro de archivos importados."
+        size="full"
+        >
       <div className="rounded-md border">
         <Table>
           <TableHeader>

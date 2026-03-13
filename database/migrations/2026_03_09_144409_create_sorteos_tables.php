@@ -16,6 +16,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre'); // Ej: "Gran Rifa 2026"
             $table->text('descripcion')->nullable();
+            $table->integer('instancias_por_sorteo');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -24,7 +25,7 @@ return new class extends Migration
         Schema::create('instancias_sorteo', function (Blueprint $table) {
             $table->id();
             $table->foreignId('sorteo_id')->constrained('sorteos')->cascadeOnDelete();
-            $table->string('nombre'); // Ej: "Sorteo del 14/03"
+            $table->string('nombre');
             $table->dateTime('fecha_ejecucion');
             $table->enum('estado', ['pendiente', 'procesada', 'finalizada'])->default('pendiente');
             $table->timestamps();

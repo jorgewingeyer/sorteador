@@ -50,6 +50,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('participantes/list', [ParticipantesController::class, 'list'])->name('participantes.list');
     Route::get('participantes/stats', [ParticipantesController::class, 'stats'])->name('participantes.stats');
     Route::get('participantes/logs', [ParticipantesController::class, 'logs'])->name('participantes.logs');
+
+    // Entregas
+    Route::post('entregas', [\App\Http\Controllers\EntregaPremioController::class, 'store'])->name('entregas.store');
+    Route::get('entregas/{entrega}/download-receipt', [\App\Http\Controllers\EntregaPremioController::class, 'downloadReceipt'])->name('entregas.downloadReceipt');
 });
 
 require __DIR__ . '/settings.php';

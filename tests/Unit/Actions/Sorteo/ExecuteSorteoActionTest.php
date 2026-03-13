@@ -20,7 +20,7 @@ class ExecuteSorteoActionTest extends TestCase
     public function test_it_executes_sorteo_selecting_random_winner()
     {
         // 1. Setup
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test', 'instancias_por_sorteo' => 10]);
         $instancia = InstanciaSorteo::create([
             'sorteo_id' => $sorteo->id,
             'nombre' => 'Instancia 1',
@@ -54,8 +54,8 @@ class ExecuteSorteoActionTest extends TestCase
         $result = ExecuteSorteoAction::execute($instancia->id);
 
         // 6. Assert
-        $this->assertArrayHasKey('carton_ganador', $result);
-        $cartonGanador = $result['carton_ganador'];
+        $this->assertArrayHasKey('carton_number', $result);
+        $cartonGanador = $result['carton_number'];
 
         // Verificar que se creó el registro en ganadores
         $this->assertDatabaseHas('ganadores', [
@@ -80,7 +80,7 @@ class ExecuteSorteoActionTest extends TestCase
 
     public function test_it_throws_exception_if_no_prizes_available()
     {
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test', 'instancias_por_sorteo' => 10]);
         $instancia = InstanciaSorteo::create([
             'sorteo_id' => $sorteo->id,
             'nombre' => 'Instancia 1',

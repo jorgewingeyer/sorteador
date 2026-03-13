@@ -93,11 +93,14 @@ export default function SorteoList({ listSorteos }: SorteoListProps & { premios?
         router.post(def.url, { is_active: checked }, {
             preserveState: true,
             preserveScroll: true,
-            onError: () => {
+            onError: (errors) => {
+                console.error("Error al cambiar estado:", errors)
+                // Revert optimistic update
                 fetchList()
             }
         })
-    } catch {
+    } catch (e) {
+        console.error("Error inesperado:", e)
         fetchList()
     }
   }
@@ -186,7 +189,11 @@ export default function SorteoList({ listSorteos }: SorteoListProps & { premios?
                 {expandedRows.has(item.id) && (
                   <TableRow>
                     <TableCell colSpan={6} className="p-0">
-                      <InstanciasList sorteoId={item.id} instancias={item.instancias ?? []} />
+                      <InstanciasList 
+                        sorteoId={item.id} 
+                        instancias={item.instancias ?? []} 
+                        limit={item.instancias_por_sorteo}
+                      />
                     </TableCell>
                   </TableRow>
                 )}

@@ -24,7 +24,7 @@ class RegisterEntregaPremioActionTest extends TestCase
         Storage::fake('public');
 
         // 1. Setup
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test', 'instancias_por_sorteo' => 10]);
         $instancia = InstanciaSorteo::create(['sorteo_id' => $sorteo->id, 'nombre' => 'Instancia 1', 'fecha_ejecucion' => now()]);
         $premio = Premio::create(['nombre' => 'Premio Test']);
         $premioInstancia = PremioInstancia::create(['instancia_sorteo_id' => $instancia->id, 'premio_id' => $premio->id, 'posicion' => 1]);
@@ -63,7 +63,7 @@ class RegisterEntregaPremioActionTest extends TestCase
     public function test_it_prevents_duplicate_delivery()
     {
         // 1. Setup (Similar al anterior)
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test', 'instancias_por_sorteo' => 10]);
         $instancia = InstanciaSorteo::create(['sorteo_id' => $sorteo->id, 'nombre' => 'Instancia 1', 'fecha_ejecucion' => now()]);
         $premio = Premio::create(['nombre' => 'Premio Test']);
         $premioInstancia = PremioInstancia::create(['instancia_sorteo_id' => $instancia->id, 'premio_id' => $premio->id, 'posicion' => 1]);

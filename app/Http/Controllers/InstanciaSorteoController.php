@@ -25,7 +25,7 @@ class InstanciaSorteoController extends Controller
 {
     public function show(InstanciaSorteo $instancia): Response
     {
-        $instancia->load(['sorteo', 'ganadores.premioInstancia.premio', 'ganadores.inscripto', 'premiosInstancia.premio']);
+        $instancia->load(['sorteo', 'ganadores.premioInstancia.premio', 'ganadores.inscripto', 'ganadores.entregaPremio', 'premiosInstancia.premio']);
         
         // Count participants ready for raffle
         $participantsCount = $instancia->participantesSorteo()->count();

@@ -55,6 +55,19 @@ export default function SorteoForm() {
             </div>
 
             <div className="grid gap-2">
+              <Label htmlFor="instancias_por_sorteo">Instancias por Sorteo</Label>
+              <Input
+                id="instancias_por_sorteo"
+                name="instancias_por_sorteo"
+                type="number"
+                min={1}
+                placeholder="Ej.: 10"
+                aria-invalid={Boolean(errors?.instancias_por_sorteo)}
+              />
+              <InputError message={errors?.instancias_por_sorteo} />
+            </div>
+
+            <div className="grid gap-2">
               <Label htmlFor="descripcion">Descripción</Label>
               <Input
                 id="descripcion"

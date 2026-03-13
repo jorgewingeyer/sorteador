@@ -24,6 +24,7 @@ class SorteoResource extends JsonResource
             'id' => $this->id,
             'nombre' => $this->nombre,
             'descripcion' => $this->descripcion,
+            'instancias_por_sorteo' => $this->instancias_por_sorteo,
             'is_active' => (bool) $this->is_active,
             'created_at' => optional($this->created_at)->toISOString(),
             // Remove 'premios' if prizes are now on instances, or keep it if we want to show all prizes across all instances?

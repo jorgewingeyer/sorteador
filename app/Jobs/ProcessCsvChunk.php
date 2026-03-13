@@ -62,6 +62,7 @@ class ProcessCsvChunk implements ShouldQueue
 
         $insertedCount = 0;
         if (! empty($batch)) {
+            
             try {
                 // Usamos insertOrIgnore para manejar la lógica incremental
                 // Si el registro (sorteo_id, dni, carton_number) ya existe, se ignora.

@@ -18,7 +18,7 @@ class CleanParticipantesActionTest extends TestCase
     public function test_it_populates_participantes_sorteo_from_inscriptos_deduplicating_cartons()
     {
         // 1. Setup
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test', 'instancias_por_sorteo' => 10]);
         $instancia = InstanciaSorteo::create([
             'sorteo_id' => $sorteo->id,
             'nombre' => 'Instancia 1',
@@ -46,7 +46,7 @@ class CleanParticipantesActionTest extends TestCase
     public function test_it_excludes_cartons_that_already_won_in_previous_instances()
     {
         // 1. Setup
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Multietapa']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Multietapa', 'instancias_por_sorteo' => 10]);
         
         // Instancia Pasada (donde alguien ganó)
         $instancia1 = InstanciaSorteo::create(['sorteo_id' => $sorteo->id, 'nombre' => 'Instancia 1', 'fecha_ejecucion' => now()->subDay()]);

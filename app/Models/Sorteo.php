@@ -7,7 +7,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sorteo extends Model
 {
-    protected $fillable = ['nombre', 'descripcion', 'is_active'];
+    protected $fillable = 
+    [
+        'nombre', 
+        'descripcion', 
+        'is_active', 
+        'instancias_por_sorteo'];
 
     protected $casts = [
         'is_active' => 'boolean',

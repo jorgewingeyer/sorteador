@@ -17,7 +17,7 @@ class ImportParticipantesFromCSVTest extends TestCase
     public function test_it_imports_participantes_from_csv()
     {
         // 1. Crear Sorteo
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test', 'instancias_por_sorteo' => 10]);
 
         // 2. Crear archivo CSV simulado
         Storage::fake('local');
@@ -39,7 +39,7 @@ class ImportParticipantesFromCSVTest extends TestCase
 
     public function test_it_handles_incremental_import_ignoring_duplicates()
     {
-        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test']);
+        $sorteo = Sorteo::create(['nombre' => 'Sorteo Test', 'instancias_por_sorteo' => 10]);
 
         // Insertar un participante previo
         Inscripto::create([

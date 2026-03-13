@@ -7,11 +7,14 @@ import PageSection from "@/components/PageSection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, CheckCircle, RefreshCcw, Play, Trophy } from "lucide-react";
+import { AlertTriangle, CheckCircle, RefreshCcw, Play, Trophy, Gift, Eye } from "lucide-react";
 import { useState } from "react";
 import InstanciaPremiosForm from "./components/InstanciaPremiosForm";
 import type { PremioItem } from "@/types/premios";
 import instancias from "@/routes/instancias";
+import EntregaPremioModal from "./components/EntregaPremioModal";
+import VerEntregaModal from "./components/VerEntregaModal";
+import { Badge } from "@/components/ui/badge";
 
 interface Ganador {
     id: number;
@@ -21,6 +24,14 @@ interface Ganador {
     inscripto?: { full_name: string; dni: string };
     premio_instancia?: { premio: { nombre: string } };
     winning_position?: number;
+    entrega_premio?: {
+        id: number;
+        fecha_entrega: string;
+        dni_receptor: string | null;
+        nombre_receptor: string;
+        observaciones: string | null;
+        foto_evidencia_path: string | null;
+    } | null;
 }
 
 interface InstanciaPageProps {
@@ -33,6 +44,9 @@ interface InstanciaPageProps {
 
 export default function InstanciaPage({ instancia, sorteo, participantsCount, ganadores, premios }: InstanciaPageProps) {
     const [loading, setLoading] = useState(false);
+    const [selectedGanador, setSelectedGanador] = useState<Ganador | null>(null);
+    const [showEntregaModal, setShowEntregaModal] = useState(false);
+    const [showVerEntregaModal, setShowVerEntregaModal] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Sorteos', href: '/sorteo' },
@@ -54,6 +68,16 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
         router.post(instancias.execute.url({ instancia: instancia.id }), {}, {
             onFinish: () => setLoading(false)
         });
+    };
+
+    const handleEntregar = (ganador: Ganador) => {
+        setSelectedGanador(ganador);
+        setShowEntregaModal(true);
+    };
+
+    const handleVerEntrega = (ganador: Ganador) => {
+        setSelectedGanador(ganador);
+        setShowVerEntregaModal(true);
     };
 
     return (
@@ -122,12 +146,14 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
                                     <TableHead>Premio</TableHead>
                                     <TableHead>Ganador</TableHead>
                                     <TableHead>Cartón</TableHead>
+                                    <TableHead>Estado Entrega</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {ganadores.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                             No hay ganadores registrados aún.
                                         </TableCell>
                                     </TableRow>
@@ -143,6 +169,36 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
                                             <TableCell>
                                                 <div className="font-medium">{ganador.carton_number || '?'}</div>
                                             </TableCell>
+                                            <TableCell>
+                                                {ganador.entrega_premio ? (
+                                                    <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
+                                                        Entregado
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">
+                                                        Pendiente
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {!ganador.entrega_premio ? (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost" 
+                                                        onClick={() => handleEntregar(ganador)}
+                                                    >
+                                                        <Gift className="w-4 h-4 mr-2" />
+                                                    </Button>
+                                                ) : (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost" 
+                                                        onClick={() => handleVerEntrega(ganador)}
+                                                    >
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                    </Button>
+                                                )}
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}
@@ -150,6 +206,24 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
                         </Table>
                     </div>
                 </PageSection>
+
+                <EntregaPremioModal 
+                    open={showEntregaModal} 
+                    onOpenChange={setShowEntregaModal} 
+                    ganador={selectedGanador}
+                    onSuccess={() => {
+                        // Opcional: refrescar datos si Inertia no lo hace automáticamente
+                        // window.location.reload(); 
+                        // Inertia debería manejar esto si el backend devuelve los datos actualizados
+                    }}
+                />
+
+                <VerEntregaModal
+                    open={showVerEntregaModal}
+                    onOpenChange={setShowVerEntregaModal}
+                    entrega={selectedGanador?.entrega_premio || null}
+                    ganadorNombre={selectedGanador?.inscripto?.full_name || 'Ganador'}
+                />
             </PageWrapper>
         </AppLayout>
     );

@@ -19,6 +19,12 @@ class StoreInstanciaSorteo extends Action
     {
         $sorteo = Sorteo::findOrFail($data['sorteo_id']);
 
+        if ($sorteo->instancias()->count() >= $sorteo->instancias_por_sorteo) {
+            throw ValidationException::withMessages([
+                'error' => 'No se pueden crear más instancias para este sorteo. El límite es ' . $sorteo->instancias_por_sorteo . '.'
+            ]);
+        }
+
         $instancia = $sorteo->instancias()->create([
             'nombre' => $data['nombre'],
             'fecha_ejecucion' => Carbon::parse($data['fecha_ejecucion']),

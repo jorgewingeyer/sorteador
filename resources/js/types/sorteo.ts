@@ -21,6 +21,7 @@ export interface SorteoItem {
   id: number
   nombre: string
   descripcion: string | null
+  instancias_por_sorteo: number
   is_active: boolean
   created_at: string | null
   instancias?: InstanciaSorteoItem[]

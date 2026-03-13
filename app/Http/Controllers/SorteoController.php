@@ -209,7 +209,7 @@ class SorteoController extends Controller
         $data = $request->validated();
 
         try {
-            ToggleSorteoStatus::execute($sorteo, (bool) $data['status']);
+            ToggleSorteoStatus::execute($sorteo, (bool) $data['is_active']);
         } catch (\Throwable $e) {
             if ($request->expectsJson()) {
                 return response()->json([

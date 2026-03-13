@@ -12,14 +12,21 @@ import sorteo from "@/routes/sorteo"
 interface InstanciasListProps {
   sorteoId: number
   instancias: InstanciaSorteoItem[]
+  limit: number
 }
 
-export default function InstanciasList({ sorteoId, instancias }: InstanciasListProps) {
+export default function InstanciasList({ sorteoId, instancias, limit }: InstanciasListProps) {
   const [open, setOpen] = useState(false)
-  const { data, setData, post, processing, errors, reset } = useForm({
+  const { data, setData, post, processing, errors, reset } = useForm<{
+    nombre: string
+    fecha_ejecucion: string
+    error?: string
+  }>({
     nombre: "",
     fecha_ejecucion: "",
   })
+
+  const canCreate = instancias.length < limit
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,8 +42,16 @@ export default function InstanciasList({ sorteoId, instancias }: InstanciasListP
   return (
     <div className="p-4 bg-muted/50 rounded-md">
       <div className="flex justify-between items-center mb-4">
-        <h4 className="text-sm font-semibold">Instancias del Sorteo</h4>
-        <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <h4 className="text-sm font-semibold">
+            Instancias del Sorteo ({instancias.length}/{limit})
+        </h4>
+        <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => setOpen(true)}
+            disabled={!canCreate}
+            title={!canCreate ? "Se ha alcanzado el límite de instancias para este sorteo" : "Crear nueva instancia"}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nueva Instancia
         </Button>
@@ -91,6 +106,11 @@ export default function InstanciasList({ sorteoId, instancias }: InstanciasListP
             <DialogTitle>Crear Nueva Instancia</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errors.error && (
+              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200">
+                {errors.error}
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="nombre">Nombre</Label>
               <Input

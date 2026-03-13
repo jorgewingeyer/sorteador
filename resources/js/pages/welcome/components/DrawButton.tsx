@@ -1,13 +1,16 @@
 interface DrawButtonProps {
     onClick: () => void;
     isDrawing: boolean;
+    isAuthenticated?: boolean;
 }
 
 /**
  * Botón de sorteo con animaciones y estados
  * Responsabilidad única: renderizar botón de acción principal
  */
-export function DrawButton({ onClick, isDrawing }: DrawButtonProps) {
+export function DrawButton({ onClick, isDrawing, isAuthenticated }: DrawButtonProps) {
+    if (!isAuthenticated) return null;
+
     return (
         <div className="flex justify-center mb-10">
             <button
@@ -40,7 +43,7 @@ export function DrawButton({ onClick, isDrawing }: DrawButtonProps) {
                     </span>
                 ) : (
                     <span className="flex items-center gap-3">
-                        🎰 REALIZAR SORTEO
+                        REALIZAR SORTEO
                     </span>
                 )}
             </button>

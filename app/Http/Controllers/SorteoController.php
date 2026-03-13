@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Sorteo\GetAllSorteos;
-use App\Actions\Sorteo\RealizarSorteo;
+use App\Actions\Sorteo\ExecuteSorteoAction;
 use App\Actions\Sorteo\ResetearGanadores;
 use App\Actions\Sorteo\StoreSorteo;
 use App\Actions\Sorteo\ToggleSorteoStatus;
@@ -20,6 +20,7 @@ use App\Http\Requests\Sorteo\StoreRequest;
 use App\Http\Resources\SorteoResource;
 use App\Http\Resources\Premios\PremioResource;
 use App\Models\Sorteo;
+use App\Models\InstanciaSorteo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class SorteoController extends Controller
         $response = GetAllSorteos::execute([
             'page' => 1,
             'per_page' => (int) $request->query('per_page', 10),
-            'sort' => 'fecha',
+            'sort' => 'created_at',
             'direction' => 'desc',
         ]);
         $premios = GetAllPremios::execute([
@@ -46,7 +47,6 @@ class SorteoController extends Controller
         return Inertia::render('sorteo/sorteo', [
             'listSorteos' => $response->getData(true),
             'premios' => PremioResource::collection($premios)->response()->getData(true),
-            'createdSorteoId' => $request->session()->get('created_sorteo_id'),
         ]);
     }
 
@@ -55,18 +55,15 @@ class SorteoController extends Controller
         return GetAllSorteos::execute([
             'page' => (int) $request->query('page', 1),
             'per_page' => (int) $request->query('per_page', 15),
-            'sort' => (string) $request->query('sort', 'fecha'),
+            'sort' => (string) $request->query('sort', 'created_at'),
             'direction' => (string) $request->query('direction', 'desc'),
             'nombre' => (string) $request->query('nombre', ''),
-            'fecha_from' => (string) $request->query('fecha_from', ''),
-            'fecha_to' => (string) $request->query('fecha_to', ''),
-            'estado' => (string) $request->query('estado', ''),
         ]);
     }
 
     public function show(Sorteo $sorteo): JsonResponse
     {
-        return (new SorteoResource($sorteo->load('premios')))
+        return (new SorteoResource($sorteo->load('instancias')))
             ->additional(['status' => 'ok'])
             ->response();
     }
@@ -88,22 +85,28 @@ class SorteoController extends Controller
     }
 
     /**
-     * Realiza un sorteo aleatorio entre todos los participantes.
+     * Realiza un sorteo aleatorio para una instancia específica.
      */
     public function realizar(Request $request): JsonResponse
     {
         try {
-            $sorteoId = $request->input('sorteo_id');
-            // Allow numeric ID or null
-            $sorteoId = is_numeric($sorteoId) ? (int) $sorteoId : null;
+            $instanciaId = $request->input('instancia_sorteo_id');
+            
+            if (!$instanciaId || !is_numeric($instanciaId)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Debe especificar una instancia de sorteo válida.'
+                ], 400);
+            }
 
-            $resultado = RealizarSorteo::execute($sorteoId);
+            $resultado = ExecuteSorteoAction::execute((int) $instanciaId);
 
             return response()->json($resultado);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage(),
-            ], 400);
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -206,7 +209,7 @@ class SorteoController extends Controller
         $data = $request->validated();
 
         try {
-            ToggleSorteoStatus::execute($sorteo, (bool) $data['status']);
+            ToggleSorteoStatus::execute($sorteo, (bool) $data['is_active']);
         } catch (\Throwable $e) {
             if ($request->expectsJson()) {
                 return response()->json([

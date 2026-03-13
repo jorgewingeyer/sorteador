@@ -18,7 +18,8 @@ class StoreRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'min:3', 'max:255'],
-            'fecha' => ['required', 'date'],
+            'descripcion' => ['nullable', 'string'],
+            'instancias_por_sorteo' => ['required', 'integer', 'min:1'],
         ];
     }
 
@@ -28,9 +29,9 @@ class StoreRequest extends FormRequest
             'nombre.required' => 'El nombre es requerido',
             'nombre.min' => 'El nombre debe tener al menos 3 caracteres',
             'nombre.max' => 'El nombre no puede tener más de 255 caracteres',
-            'fecha.required' => 'La fecha es requerida',
-            'fecha.date' => 'La fecha debe ser una fecha válida',
-            'fecha.after' => 'La fecha debe ser posterior a hoy',
+            'instancias_por_sorteo.required' => 'La cantidad de instancias es requerida',
+            'instancias_por_sorteo.integer' => 'La cantidad de instancias debe ser un número entero',
+            'instancias_por_sorteo.min' => 'La cantidad de instancias debe ser al menos 1',
         ];
     }
 }

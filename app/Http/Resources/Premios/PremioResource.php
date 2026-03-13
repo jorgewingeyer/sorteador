@@ -26,16 +26,6 @@ class PremioResource extends JsonResource
             'posicion' => $posicion,
             'created_at' => $this->created_at instanceof Carbon ? $this->created_at->toIso8601String() : null,
             'updated_at' => $this->updated_at instanceof Carbon ? $this->updated_at->toIso8601String() : null,
-            'sorteos' => $this->whenLoaded('sorteos', function () {
-                return $this->sorteos->map(function ($sorteo) {
-                    return [
-                        'id' => $sorteo->id,
-                        'nombre' => $sorteo->nombre,
-                        'fecha' => $sorteo->fecha,
-                        'posicion' => $sorteo->pivot->posicion ?? null,
-                    ];
-                })->values();
-            }),
         ];
     }
 }

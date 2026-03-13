@@ -29,11 +29,7 @@ abstract class GetAllPremios extends Action
             $direction = 'desc';
         }
 
-        $query = Premio::query()->with([
-            'sorteos' => function ($q) {
-                $q->select('sorteos.id', 'sorteos.nombre', 'sorteos.fecha');
-            },
-        ]);
+        $query = Premio::query();
 
         if (! empty($options['nombre'])) {
             $query->where('nombre', 'like', '%'.$options['nombre'].'%');

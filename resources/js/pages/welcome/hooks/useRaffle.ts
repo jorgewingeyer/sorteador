@@ -13,7 +13,7 @@ interface UseRaffleReturn {
  * Custom hook para manejar la lógica del sorteo
  * Separa la lógica de negocio de la presentación (SRP)
  */
-export function useRaffle(): UseRaffleReturn {
+export function useRaffle(instanciaSorteoId?: number | null): UseRaffleReturn {
     const [isDrawing, setIsDrawing] = useState(false);
     const [winner, setWinner] = useState<WinnerResult | null>(null);
     const [showConfetti, setShowConfetti] = useState(false);
@@ -24,6 +24,11 @@ export function useRaffle(): UseRaffleReturn {
     };
 
     const handleDraw = async () => {
+        if (!instanciaSorteoId) {
+            alert('No hay sorteo activo disponible.');
+            return;
+        }
+
         setIsDrawing(true);
         setWinner(null);
         setShowConfetti(false);
@@ -35,11 +40,12 @@ export function useRaffle(): UseRaffleReturn {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
                 },
+                body: JSON.stringify({ instancia_sorteo_id: instanciaSorteoId }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Error al realizar el sorteo');
+                throw new Error(errorData.error || errorData.message || 'Error al realizar el sorteo');
             }
 
             const data = await response.json();
@@ -52,9 +58,10 @@ export function useRaffle(): UseRaffleReturn {
 
             // Detener confetti después de 6 segundos
             setTimeout(() => setShowConfetti(false), 6000);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error:', error);
-            alert(error.message || 'Hubo un error al realizar el sorteo. Por favor, intenta de nuevo.');
+            const message = error instanceof Error ? error.message : 'Hubo un error al realizar el sorteo. Por favor, intenta de nuevo.';
+            alert(message);
         } finally {
             setIsDrawing(false);
         }

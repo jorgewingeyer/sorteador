@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import PageSection from "@/components/PageSection";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import ParticipantesController from "@/actions/App/Http/Controllers/ParticipantesController";
-import sorteo from "@/routes/sorteo";
-import { participantes as participantesRoute } from "@/routes";
-import { usePage } from "@inertiajs/react";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { router } from "@inertiajs/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResetWinnersDialog } from "@/components/ResetWinnersDialog";
 import { WinnerBadge } from "@/components/WinnerBadge";
-import { DebugFilter } from "@/components/DebugFilter";
+import { Button } from "@/components/ui/button";
+import { SorteoItem } from "@/types/sorteo";
+import { participantes } from "@/routes";
 
 interface ParticipanteItem {
   id: number;
@@ -30,237 +29,191 @@ interface PaginationMeta {
   current_page: number;
   last_page: number;
   per_page: number;
+  total: number;
+  from: number;
+  to: number;
 }
 
-interface ParticipanteListResponse {
+export interface ParticipanteListResponse {
   data: ParticipanteItem[];
   meta?: PaginationMeta;
   status?: "ok" | "error";
   error?: { message: string };
 }
 
-export default function ParticipantesList() {
-  const pageCtx = usePage();
-  const [data, setData] = useState<ParticipanteListResponse | null>(null);
-  const [page, setPage] = useState<number>(1);
-  const [perPage] = useState<number>(50);
-  const [sort, setSort] = useState<"created_at" | "full_name" | "dni" | "carton_number" | "sorteo_id">("created_at");
-  const [direction, setDirection] = useState<"asc" | "desc">("desc");
+interface Props {
+  initialSorteoId?: string | number | null;
+  initialData?: ParticipanteListResponse;
+  sorteos: SorteoItem[];
+}
 
-  const [q, setQ] = useState<string>("");
-  const [qInput, setQInput] = useState<string>("");
-  const [sorteoId, setSorteoId] = useState<string>("");
-  const [ganadorStatus, setGanadorStatus] = useState<string>("");
-  const [sorteos, setSorteos] = useState<Array<{ id: number; nombre: string }>>([]);
+export default function ParticipantesList({ initialSorteoId, initialData, sorteos }: Props) {
+  // Extract query params from URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const [q, setQ] = useState(searchParams.get("q") || "");
+  const [sorteoId] = useState(initialSorteoId ? String(initialSorteoId) : (searchParams.get("sorteo_id") || ""));
+  const [ganadorStatus, setGanadorStatus] = useState(searchParams.get("ganador_status") || "");
+  const [sort, setSort] = useState(searchParams.get("sort") || "created_at");
+  const [direction, setDirection] = useState(searchParams.get("direction") || "desc");
 
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  // Debounce search input
+  const [qInput, setQInput] = useState(q);
 
-  const query = useMemo(() => {
-    const params: Record<string, any> = { 
-      page, 
-      per_page: perPage, 
-      sort, 
-      direction,
-    };
-    
-    if (q) params.q = q;
-    if (sorteoId) params.sorteo_id = sorteoId;
-    if (ganadorStatus) params.ganador_status = ganadorStatus;
-    
-    return params;
-  }, [page, perPage, sort, direction, q, sorteoId, ganadorStatus]);
-
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const url = ParticipantesController.list.url({ query });
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-      const json = (await res.json()) as ParticipanteListResponse;
-      setData(json);
-    } catch {
-      setError("No se pudieron cargar los participantes.");
-    } finally {
-      setLoading(false);
-    }
-  }, [query]);
-
-  useEffect(() => {
-    const url = participantesRoute({ query }).url;
-    window.history.replaceState(null, "", url);
-  }, [query]);
-
-  useEffect(() => {
-    const raw = String(pageCtx.url);
-    if (raw) {
-      const url = new URL(raw, window.location.origin);
-      const sid = url.searchParams.get("sorteo_id") ?? "";
-      if (sid) {
-        setSorteoId(sid);
+  const applyFilters = useCallback((newParams: Record<string, string | number | null | undefined>) => {
+    router.get(
+      participantes.url(),
+      {
+        sorteo_id: sorteoId,
+        q: qInput,
+        ganador_status: ganadorStatus,
+        sort,
+        direction,
+        ...newParams,
+      },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
       }
-      const qParam = url.searchParams.get("q");
-      if (qParam) {
-        setQ(qParam);
-        setQInput(qParam);
-      }
-      const ganadorParam = url.searchParams.get("ganador_status");
-      if (ganadorParam) {
-        setGanadorStatus(ganadorParam);
-      }
-    }
-    fetchList();
-  }, [fetchList, pageCtx.url]);
+    );
+  }, [sorteoId, qInput, ganadorStatus, sort, direction]);
 
-  useEffect(() => {
-    const loadSorteos = async () => {
-      try {
-        const res = await fetch(sorteo.list.url({ query: { page: 1, per_page: 100, sort: "fecha", direction: "desc" } }), { headers: { Accept: "application/json" } });
-        const json = await res.json() as { data?: Array<{ id: number; nombre: string }> };
-        const items: Array<{ id: number; nombre: string }> = (json?.data ?? []).map((s) => ({ id: s.id, nombre: s.nombre }));
-        setSorteos(items);
-      } catch {
-        // ignore
-      }
-    };
-    loadSorteos();
-  }, []);
-
-  const toggleSort = (column: "created_at" | "full_name" | "dni" | "carton_number" | "sorteo_id") => {
-    if (sort === column) {
-      setDirection((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSort(column);
-      setDirection("asc");
-    }
-    setPage(1);
+  const handlePageChange = (page: number) => {
+    applyFilters({ page });
   };
 
-  const applySearch = () => {
-    setQ(qInput.trim());
-    setPage(1);
+  const handleSort = (column: string) => {
+    const newDirection = sort === column && direction === "asc" ? "desc" : "asc";
+    setSort(column);
+    setDirection(newDirection);
+    applyFilters({ sort: column, direction: newDirection });
   };
 
-  const items: ParticipanteItem[] = data?.data ?? [];
-  const meta = data?.meta;
+  const handleSearch = () => {
+    setQ(qInput);
+    applyFilters({ q: qInput, page: 1 });
+  };
+
+  const items = initialData?.data || [];
+  const meta = initialData?.meta;
 
   return (
     <PageSection
-      title="Participantes"
-      description="Mantén un registro de todos los participantes en tu sorteo."
-      size="large"
+      title="Listado de Inscriptos"
+      description="Listado completo de personas inscriptas al sorteo."
+      size="full"
     >
       <div className="space-y-4">
-        {/* Botón de resetear ganadores */}
-        <div className="flex justify-end">
-          <ResetWinnersDialog 
-            sorteos={sorteos} 
-            defaultSorteoId={sorteoId}
-          />
-        </div>
-
-        {/* Debug Filter - Remover en producción */}
-        {/* <DebugFilter ganadorStatus={ganadorStatus} query={query} /> */}
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Buscar por nombre, DNI o Nº de cartón"
-              value={qInput}
-              onChange={(e) => setQInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') applySearch(); }}
-            />
-            <button className="inline-flex h-9 items-center rounded-md border bg-transparent px-3 text-sm" onClick={applySearch}>Buscar</button>
-          </div>
-          <div>
-            <Select value={sorteoId} onValueChange={(v) => { setSorteoId(v === "__all__" ? "" : v); setPage(1); }}>
-              <SelectTrigger aria-label="Sorteo">
-                <SelectValue placeholder="Todos los sorteos" />
+        <div className="flex flex-col md:flex-row gap-4 justify-between">
+          <div className="flex flex-col md:flex-row gap-2 flex-1">
+             <div className="flex gap-2 w-full md:w-auto">
+                <Input
+                  placeholder="Buscar por nombre, DNI o cartón..."
+                  value={qInput}
+                  onChange={(e) => setQInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="w-full md:w-64"
+                />
+                <Button variant="secondary" onClick={handleSearch}>Buscar</Button>
+             </div>
+             
+             <Select value={ganadorStatus} onValueChange={(v) => { setGanadorStatus(v === "all" ? "" : v); applyFilters({ ganador_status: v === "all" ? "" : v, page: 1 }); }}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">Todos</SelectItem>
-                {sorteos.map((s) => (
-                  <SelectItem key={s.id} value={String(s.id)}>{s.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Select value={ganadorStatus} onValueChange={(v) => { setGanadorStatus(v === "__all__" ? "" : v); setPage(1); }}>
-              <SelectTrigger aria-label="Estado">
-                <SelectValue placeholder="Todos los estados" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos</SelectItem>
-                <SelectItem value="ganador">🏆 Solo Ganadores</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="ganador">🏆 Ganadores</SelectItem>
                 <SelectItem value="no_ganador">⏳ No Ganadores</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          <div className="flex items-center gap-2">
+            <ResetWinnersDialog 
+                sorteos={sorteos} 
+                defaultSorteoId={sorteoId}
+            />
+          </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("sorteo_id")}>Sorteo</TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("full_name")}>Nombre</TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("dni")}>DNI</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Localidad</TableHead>
-              <TableHead>Provincia</TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("carton_number")}>Nº Cartón</TableHead>
-              <TableHead>Ganador</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading && (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={8}>Cargando...</TableCell>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("full_name")}>
+                    Nombre {sort === "full_name" && (direction === "asc" ? "↑" : "↓")}
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("dni")}>
+                    DNI {sort === "dni" && (direction === "asc" ? "↑" : "↓")}
+                </TableHead>
+                <TableHead>Teléfono</TableHead>
+                <TableHead>Ubicación</TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("carton_number")}>
+                    Nº Cartón {sort === "carton_number" && (direction === "asc" ? "↑" : "↓")}
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("created_at")}>
+                    Fecha {sort === "created_at" && (direction === "asc" ? "↑" : "↓")}
+                </TableHead>
+                <TableHead>Estado</TableHead>
               </TableRow>
-            )}
-            {error && !loading && (
-              <TableRow>
-                <TableCell colSpan={8}>{error}</TableCell>
-              </TableRow>
-            )}
-            {!loading && !error && items.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8}>No hay participantes para los filtros seleccionados.</TableCell>
-              </TableRow>
-            )}
-            {items.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell>{p.sorteo_nombre ?? '-'}</TableCell>
-                <TableCell>{p.full_name}</TableCell>
-                <TableCell>{p.dni}</TableCell>
-                <TableCell>{p.phone}</TableCell>
-                <TableCell>{p.location}</TableCell>
-                <TableCell>{p.province}</TableCell>
-                <TableCell>{p.carton_number}</TableCell>
-                <TableCell>
-                  <WinnerBadge ganadorEn={p.ganador_en} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    No se encontraron inscriptos.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.full_name}</TableCell>
+                    <TableCell>{item.dni}</TableCell>
+                    <TableCell>{item.phone}</TableCell>
+                    <TableCell>
+                        {item.location && item.province ? `${item.location}, ${item.province}` : (item.location || item.province || '-')}
+                    </TableCell>
+                    <TableCell>{item.carton_number}</TableCell>
+                    <TableCell>
+                        {item.created_at ? new Date(item.created_at).toLocaleDateString() : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <WinnerBadge ganadorEn={item.ganador_en} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-      {meta && meta.last_page > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious onClick={() => setPage((p) => Math.max(1, p - 1))} />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink isActive>{meta.current_page}</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))} />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
-    </div>
-  </PageSection>
+        {meta && meta.last_page > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                    onClick={() => meta.current_page > 1 && handlePageChange(meta.current_page - 1)}
+                    className={meta.current_page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              <PaginationItem>
+                 <span className="px-4 text-sm text-muted-foreground">
+                    Página {meta.current_page} de {meta.last_page}
+                 </span>
+              </PaginationItem>
+
+              <PaginationItem>
+                <PaginationNext 
+                    onClick={() => meta.current_page < meta.last_page && handlePageChange(meta.current_page + 1)}
+                    className={meta.current_page >= meta.last_page ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </div>
+    </PageSection>
   );
 }

@@ -2,7 +2,9 @@
 
 namespace App\Actions\Sorteo;
 
-use App\Models\Participante;
+use App\Models\Ganador;
+use App\Models\InstanciaSorteo;
+use App\Models\Inscripto;
 use Illuminate\Support\Facades\Log;
 
 class ResetearGanadores
@@ -19,11 +21,13 @@ class ResetearGanadores
     public static function execute(?int $sorteoId = null): array
     {
         // Construir query base
-        $query = Participante::whereNotNull('ganador_en');
+        $query = Ganador::query();
 
         // Filtrar por sorteo si se especifica
         if ($sorteoId !== null) {
-            $query->where('sorteo_id', $sorteoId);
+            // Ganador está vinculado a InstanciaSorteo, que está vinculada a Sorteo
+            $instancias = InstanciaSorteo::where('sorteo_id', $sorteoId)->pluck('id');
+            $query->whereIn('instancia_sorteo_id', $instancias);
         }
 
         // Contar ganadores antes de resetear
@@ -41,8 +45,8 @@ class ResetearGanadores
             ];
         }
 
-        // Resetear ganadores (poner ganador_en en NULL)
-        $query->update(['ganador_en' => null]);
+        // Resetear ganadores (Eliminar registros)
+        $query->delete();
 
         // Mensaje de log
         $logMessage = $sorteoId
@@ -64,7 +68,7 @@ class ResetearGanadores
             'message' => $message,
             'ganadores_reseteados' => $totalGanadores,
             'sorteo_id' => $sorteoId,
-            'participantes_disponibles' => Participante::when(
+            'participantes_disponibles' => Inscripto::when(
                 $sorteoId,
                 fn($q) => $q->where('sorteo_id', $sorteoId)
             )->count(),

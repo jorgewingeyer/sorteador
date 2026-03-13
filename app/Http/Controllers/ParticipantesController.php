@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Actions\Participantes\GetAllParticipantes;
 use App\Actions\Participantes\ImportParticipantesFromCSV;
 use App\Http\Requests\Participantes\ImportRequest;
+use App\Models\Inscripto;
+use App\Models\ImportLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +17,25 @@ class ParticipantesController extends Controller
 {
     public function index(Request $request)
     {
-        return Inertia::render('participantes/participantes');
+        $sorteoId = $request->query('sorteo_id');
+        $sorteo = null;
+        if ($sorteoId) {
+            $sorteo = \App\Models\Sorteo::find($sorteoId);
+        }
+        
+        $sorteos = \App\Models\Sorteo::orderBy('created_at', 'desc')->get(['id', 'nombre', 'created_at']);
+
+        $participantes = null;
+        if ($sorteoId) {
+            $participantes = GetAllParticipantes::execute($request->all());
+        }
+
+        return Inertia::render('participantes/participantes', [
+            'sorteoId' => $sorteoId,
+            'sorteo' => $sorteo ? new \App\Http\Resources\SorteoResource($sorteo) : null,
+            'sorteos' => $sorteos,
+            'participantes' => $participantes,
+        ]);
     }
 
     /**
@@ -41,7 +61,7 @@ class ParticipantesController extends Controller
             ], 200, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
         }
 
-        return redirect()->route('participantes')
+        return redirect()->route('participantes', ['sorteo_id' => $validated['sorteo_id']])
             ->with('status', 'Importación iniciada en segundo plano: ' . $stats['processed'] . ' filas en proceso.');
     }
 
@@ -59,6 +79,35 @@ class ParticipantesController extends Controller
             'sorteo_id' => (string) $request->query('sorteo_id', ''),
             'province' => (string) $request->query('province', ''),
             'ganador_status' => (string) $request->query('ganador_status', ''),
+        ])->response();
+    }
+
+    /**
+     * Obtener estadísticas de participantes para un sorteo.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        return \App\Actions\Participantes\GetParticipantesStats::execute([
+            'sorteo_id' => (int) $request->query('sorteo_id', 0),
         ]);
+    }
+
+    /**
+     * Get import logs for a sorteo.
+     */
+    public function logs(Request $request): JsonResponse
+    {
+        $sorteoId = $request->query('sorteo_id');
+        
+        if (!$sorteoId) {
+            return response()->json(['data' => []]);
+        }
+
+        $logs = ImportLog::where('sorteo_id', $sorteoId)
+            ->with('user:id,name')
+            ->latest()
+            ->paginate(10);
+            
+        return response()->json($logs);
     }
 }

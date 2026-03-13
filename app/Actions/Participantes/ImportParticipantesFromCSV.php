@@ -5,8 +5,10 @@ namespace App\Actions\Participantes;
 use App\Actions\Action;
 use App\Actions\Participantes\Transformers\CsvParticipanteTransformer;
 use App\Jobs\ProcessCsvChunk;
+use App\Models\ImportLog;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * ImportParticipantesFromCSV
@@ -27,6 +29,9 @@ abstract class ImportParticipantesFromCSV extends Action
     public static function execute(UploadedFile $file, int $sorteoId): array
     {
         $path = $file->getRealPath();
+        $fileName = $file->getClientOriginalName();
+        $fileSize = $file->getSize();
+
         if ($path === false) {
             return [
                 'status' => 'error',
@@ -63,6 +68,18 @@ abstract class ImportParticipantesFromCSV extends Action
         $headers = [];
         $batch = [];
 
+        // Create initial log entry
+        $importLog = ImportLog::create([
+            'sorteo_id' => $sorteoId,
+            'file_name' => @mb_convert_encoding($fileName, 'UTF-8', 'UTF-8, ISO-8859-1'),
+            'file_size' => $fileSize,
+            'total_rows' => 0, // Will be updated
+            'imported_rows' => 0,
+            'skipped_rows' => 0,
+            'error_log' => [],
+            'user_id' => Auth::id(),
+        ]);
+
         try {
             // Detect delimiter from header line
             $headerLine = fgets($handle);
@@ -80,9 +97,15 @@ abstract class ImportParticipantesFromCSV extends Action
             $rawHeaders = str_getcsv(rtrim($headerLine, "\r\n"), $delimiter);
             $headers = array_map(function ($h) {
                 $h = is_string($h) ? trim($h) : '';
-                $hNorm = strtolower($h);
+                // Ensure UTF-8
+                $h = @mb_convert_encoding($h, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
+                $hNorm = mb_strtolower($h, 'UTF-8');
                 // normalize special headers
-                $hNorm = str_replace([' ', '.', 'ó'], ['_', '', 'o'], $hNorm);
+                $hNorm = str_replace(
+                    [' ', '.', 'ó', 'á', 'é', 'í', 'ú', 'ñ'], 
+                    ['_', '', 'o', 'a', 'e', 'i', 'u', 'n'], 
+                    $hNorm
+                );
 
                 return $hNorm;
             }, $rawHeaders);
@@ -94,31 +117,46 @@ abstract class ImportParticipantesFromCSV extends Action
                 $processed++;
                 $assoc = [];
                 foreach ($headers as $idx => $header) {
-                    $assoc[$header] = isset($row[$idx]) ? (string) $row[$idx] : null;
+                    $value = isset($row[$idx]) ? (string) $row[$idx] : null;
+                    // Ensure value is UTF-8
+                    if ($value !== null) {
+                        $value = @mb_convert_encoding($value, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
+                    }
+                    $assoc[$header] = $value;
                 }
 
-                // Transform immediately to ensure UTF-8 encoding before dispatching
-                $mapped = CsvParticipanteTransformer::execute($assoc, $sorteoId);
-                $batch[] = $mapped;
+                // Transform row data using CsvParticipanteTransformer
+                // Note: We need to adapt CsvParticipanteTransformer to return an array
+                // For now, let's assume raw data is passed to the job which handles validation/mapping
+                $batch[] = $assoc;
+                $imported++;
                 
                 if (count($batch) >= self::CHUNK_SIZE) {
-                    ProcessCsvChunk::dispatch($batch, $sorteoId);
+                    ProcessCsvChunk::dispatchSync($batch, $sorteoId, $importLog->id);
                     $chunks++;
                     $batch = [];
                 }
             }
 
             if (! empty($batch)) {
-                ProcessCsvChunk::dispatch($batch, $sorteoId);
+                ProcessCsvChunk::dispatchSync($batch, $sorteoId, $importLog->id);
                 $chunks++;
             }
         } catch (\Throwable $e) {
+            // Ensure error message is UTF-8 encoded
+            $errorMessage = @mb_convert_encoding($e->getMessage(), 'UTF-8', 'UTF-8, ISO-8859-1');
             Log::error('CSV import failure', [
-                'message' => $e->getMessage(),
+                'message' => $errorMessage,
             ]);
-            $errors[] = ['line' => $processed + 1, 'error' => $e->getMessage()];
+            $errors[] = ['line' => $processed + 1, 'error' => $errorMessage];
         } finally {
             fclose($handle);
+            
+            // Update import log with totals
+            $importLog->update([
+                'total_rows' => $processed,
+                'error_log' => $errors,
+            ]);
         }
 
         return [

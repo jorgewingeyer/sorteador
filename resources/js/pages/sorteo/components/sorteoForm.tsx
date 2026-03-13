@@ -54,17 +54,29 @@ export default function SorteoForm() {
               <InputError message={errors?.nombre} />
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="fecha">Fecha</Label>
-                <Input
-                  id="fecha"
-                  name="fecha"
-                  type="date"
-                  aria-invalid={Boolean(errors?.fecha)}
-                />
-                <InputError message={errors?.fecha} />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="instancias_por_sorteo">Instancias por Sorteo</Label>
+              <Input
+                id="instancias_por_sorteo"
+                name="instancias_por_sorteo"
+                type="number"
+                min={1}
+                placeholder="Ej.: 10"
+                aria-invalid={Boolean(errors?.instancias_por_sorteo)}
+              />
+              <InputError message={errors?.instancias_por_sorteo} />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="descripcion">Descripción</Label>
+              <Input
+                id="descripcion"
+                name="descripcion"
+                type="text"
+                placeholder="Descripción opcional..."
+                aria-invalid={Boolean(errors?.descripcion)}
+              />
+              <InputError message={errors?.descripcion} />
             </div>
 
             <div className="flex items-center gap-3">

@@ -20,12 +20,12 @@ abstract class GetAllSorteos extends Action
         try {
             $page = (int) ($options['page'] ?? 1);
             $perPage = (int) ($options['per_page'] ?? 15);
-            $sort = (string) ($options['sort'] ?? 'fecha');
+            $sort = (string) ($options['sort'] ?? 'created_at');
             $direction = strtolower((string) ($options['direction'] ?? 'desc'));
 
-            $allowedSorts = ['fecha', 'nombre', 'created_at'];
+            $allowedSorts = ['nombre', 'created_at'];
             if (! in_array($sort, $allowedSorts, true)) {
-                $sort = 'fecha';
+                $sort = 'created_at';
             }
             if (! in_array($direction, ['asc', 'desc'], true)) {
                 $direction = 'desc';
@@ -37,28 +37,9 @@ abstract class GetAllSorteos extends Action
                 $query->where('nombre', 'like', '%'.$options['nombre'].'%');
             }
 
-            if (! empty($options['fecha_from'])) {
-                $query->whereDate('fecha', '>=', $options['fecha_from']);
-            }
-
-            if (! empty($options['fecha_to'])) {
-                $query->whereDate('fecha', '<=', $options['fecha_to']);
-            }
-
-            if (! empty($options['estado'])) {
-                $today = now()->startOfDay();
-                if ($options['estado'] === 'pendiente') {
-                    $query->whereDate('fecha', '>', $today);
-                } elseif ($options['estado'] === 'hoy') {
-                    $query->whereDate('fecha', '=', $today);
-                } elseif ($options['estado'] === 'completado') {
-                    $query->whereDate('fecha', '<', $today);
-                }
-            }
-
             $query->orderBy($sort, $direction);
 
-            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+            $paginator = $query->with(['instancias'])->paginate($perPage, ['*'], 'page', $page);
 
             return SorteoResource::collection($paginator)
                 ->additional(['status' => 'ok'])

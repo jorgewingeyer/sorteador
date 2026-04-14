@@ -2,25 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Sorteo\GetAllSorteos;
+use App\Actions\Premios\GetAllPremios;
+use App\Actions\Sorteo\AddPremioToSorteo;
 use App\Actions\Sorteo\ExecuteSorteoAction;
+use App\Actions\Sorteo\GetAllSorteos;
+use App\Actions\Sorteo\RemovePremioFromSorteo;
 use App\Actions\Sorteo\ResetearGanadores;
 use App\Actions\Sorteo\StoreSorteo;
 use App\Actions\Sorteo\ToggleSorteoStatus;
 use App\Actions\Sorteo\UpdateSorteoPremios;
-use App\Actions\Sorteo\AddPremioToSorteo;
-use App\Actions\Sorteo\RemovePremioFromSorteo;
-use App\Actions\Premios\GetAllPremios;
-use App\Http\Requests\Sorteo\UpdatePremiosRequest;
-use App\Http\Requests\Sorteo\ToggleStatusRequest;
 use App\Http\Requests\Sorteo\AddPremioRequest;
 use App\Http\Requests\Sorteo\RemovePremioRequest;
 use App\Http\Requests\Sorteo\ReorderPremiosRequest;
 use App\Http\Requests\Sorteo\StoreRequest;
-use App\Http\Resources\SorteoResource;
+use App\Http\Requests\Sorteo\ToggleStatusRequest;
+use App\Http\Requests\Sorteo\UpdatePremiosRequest;
 use App\Http\Resources\Premios\PremioResource;
+use App\Http\Resources\SorteoResource;
 use App\Models\Sorteo;
-use App\Models\InstanciaSorteo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,15 +90,15 @@ class SorteoController extends Controller
     {
         try {
             $instanciaId = $request->input('instancia_sorteo_id');
-            
-            if (!$instanciaId || !is_numeric($instanciaId)) {
+
+            if (! $instanciaId || ! is_numeric($instanciaId)) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Debe especificar una instancia de sorteo válida.'
+                    'message' => 'Debe especificar una instancia de sorteo válida.',
                 ], 400);
             }
 
-            $resultado = ExecuteSorteoAction::execute((int) $instanciaId);
+            $resultado = app(ExecuteSorteoAction::class)->execute((int) $instanciaId);
 
             return response()->json($resultado);
         } catch (\Exception $e) {
@@ -119,7 +118,7 @@ class SorteoController extends Controller
             $sorteoId = $request->input('sorteo_id');
 
             // Validar sorteo_id si se proporciona
-            if ($sorteoId !== null && !is_numeric($sorteoId)) {
+            if ($sorteoId !== null && ! is_numeric($sorteoId)) {
                 return response()->json([
                     'error' => 'El ID del sorteo debe ser un número válido.',
                 ], 400);
@@ -159,7 +158,7 @@ class SorteoController extends Controller
 
     public function addPremio(AddPremioRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
     {
-        if (!$request->user()) {
+        if (! $request->user()) {
             return response()->json(['status' => 'error', 'message' => 'No autorizado'], 403);
         }
 
@@ -186,7 +185,7 @@ class SorteoController extends Controller
 
     public function removePremio(RemovePremioRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
     {
-        if (!$request->user()) {
+        if (! $request->user()) {
             return response()->json(['status' => 'error', 'message' => 'No autorizado'], 403);
         }
 
@@ -217,6 +216,7 @@ class SorteoController extends Controller
                     'message' => $e->getMessage(),
                 ], 422);
             }
+
             return back()->withErrors(['error' => $e->getMessage()]);
         }
 
@@ -231,7 +231,7 @@ class SorteoController extends Controller
 
     public function reorderPremios(ReorderPremiosRequest $request, Sorteo $sorteo): RedirectResponse|JsonResponse
     {
-        if (!$request->user()) {
+        if (! $request->user()) {
             return response()->json(['status' => 'error', 'message' => 'No autorizado'], 403);
         }
 

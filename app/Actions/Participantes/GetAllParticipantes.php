@@ -4,19 +4,22 @@ namespace App\Actions\Participantes;
 
 use App\Actions\Action;
 use App\Http\Resources\ParticipanteResource;
-use App\Models\Participante;
-use Illuminate\Http\JsonResponse;
+use App\Models\Inscripto;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
  * GetAllParticipantes Action
  *
- * Returns paginated participantes as JSON, supports sorting and filtering.
+ * Returns paginated participantes as ResourceCollection, supports sorting and filtering.
  */
 abstract class GetAllParticipantes extends Action
 {
-    public static function execute(array $options = []): JsonResponse
+    /**
+     * @return AnonymousResourceCollection
+     */
+    public static function execute(array $options = [])
     {
         try {
             $page = (int) ($options['page'] ?? 1);
@@ -32,9 +35,9 @@ abstract class GetAllParticipantes extends Action
                 $direction = 'desc';
             }
 
-            $query = Participante::query()
-                ->select(['id', 'sorteo_id', 'full_name', 'dni', 'phone', 'location', 'province', 'carton_number', 'created_at', 'ganador_en'])
-                ->with(['sorteo:id,nombre']);
+            $query = Inscripto::query()
+                ->select(['id', 'sorteo_id', 'full_name', 'dni', 'phone', 'location', 'province', 'carton_number', 'created_at'])
+                ->with(['sorteo:id,nombre', 'ganadores']);
 
             if (!empty($options['q'])) {
                 $q = (string) $options['q'];
@@ -57,59 +60,28 @@ abstract class GetAllParticipantes extends Action
             if (!empty($options['ganador_status'])) {
                 $status = (string) $options['ganador_status'];
 
-                // DEBUG: Log para verificar que el filtro se está aplicando
-                Log::info('Filtro ganador_status aplicado', [
-                    'status' => $status,
-                    'count_before' => $query->count(),
-                ]);
-
                 if ($status === 'ganador') {
-                    $query->whereNotNull('ganador_en');
+                    $query->has('ganadores');
                 } elseif ($status === 'no_ganador') {
-                    $query->whereNull('ganador_en');
+                    $query->doesntHave('ganadores');
                 }
-                // Si es 'todos', no aplica filtro
-
-                // DEBUG: Log después de aplicar filtro
-                Log::info('Filtro ganador_status resultado', [
-                    'status' => $status,
-                    'count_after' => $query->count(),
-                ]);
             }
 
             $query->orderBy($sort, $direction);
 
-            $cacheKey = 'participantes:list:' . md5(json_encode([
-                'page' => $page,
-                'per_page' => $perPage,
-                'sort' => $sort,
-                'direction' => $direction,
-                'q' => $options['q'] ?? null,
-                'sorteo_id' => $options['sorteo_id'] ?? null,
-                'province' => $options['province'] ?? null,
-                'ganador_status' => $options['ganador_status'] ?? null,
-            ]));
+            // Cache key logic - removed cache for simplicity during development/refactor
+            // Or keep it but cache the paginator result, not the response
+            
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
-            $response = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($query, $perPage, $page) {
-                $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+            return ParticipanteResource::collection($paginator)
+                ->additional(['status' => 'ok']);
 
-                return ParticipanteResource::collection($paginator)
-                    ->additional(['status' => 'ok'])
-                    ->response();
-            });
-
-            return $response;
         } catch (\Throwable $e) {
             Log::error('Error fetching participantes', [
                 'message' => $e->getMessage(),
             ]);
-
-            return response()->json([
-                'status' => 'error',
-                'error' => [
-                    'message' => 'No se pudieron recuperar los participantes.',
-                ],
-            ], 500);
+            throw $e;
         }
     }
 }

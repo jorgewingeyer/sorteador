@@ -26,3 +26,11 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/.trae
+
+# Claude Code
+/.claude
+/.claude.json
+/.claude.json.backup
+/.claude.json.production
+/CLAUDE.md

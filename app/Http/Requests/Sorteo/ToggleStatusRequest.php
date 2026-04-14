@@ -14,15 +14,15 @@ class ToggleStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'boolean'],
+            'is_active' => ['required', 'boolean'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'status.required' => 'El estado es requerido.',
-            'status.boolean' => 'El estado debe ser verdadero o falso.',
+            'is_active.required' => 'El estado es requerido.',
+            'is_active.boolean' => 'El estado debe ser verdadero o falso.',
         ];
     }
 }

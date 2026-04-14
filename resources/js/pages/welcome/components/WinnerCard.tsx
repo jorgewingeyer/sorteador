@@ -94,7 +94,7 @@ export function WinnerCard({ winner, onClose }: WinnerCardProps) {
                     {/* Details Grid - Responsive Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-[1.5vmin] w-full overflow-y-auto pr-2 justify-center max-w-4xl" style={{ maxHeight: '30vh' }}>
                         
-                        <InfoItem label="Posición Sorteo" value={`#${winner.posicion_sorteo}`} />
+                        <InfoItem label="Posición Sorteo" value={`${winner.posicion_sorteo}º PREMIO`} />
                         
                         <InfoItem label="Premio Asignado" value={winner.premio} />
                         

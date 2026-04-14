@@ -20,13 +20,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Sorteos
     Route::get('sorteo', [SorteoController::class, 'index'])->name('sorteo');
     Route::post('sorteo', [SorteoController::class, 'store'])->name('sorteo.store');
+    Route::post('sorteo/{sorteo}/instancias', [\App\Http\Controllers\InstanciaSorteoController::class, 'store'])->name('sorteo.instancias.store');
+    
+    // Instancias de Sorteo
+    Route::prefix('instancias')->name('instancias.')->group(function () {
+        Route::get('{instancia}', [\App\Http\Controllers\InstanciaSorteoController::class, 'show'])->name('show');
+        Route::post('{instancia}/clean', [\App\Http\Controllers\InstanciaSorteoController::class, 'clean'])->name('clean');
+        Route::post('{instancia}/execute', [\App\Http\Controllers\InstanciaSorteoController::class, 'execute'])->name('execute');
+        Route::post('{instancia}/premios/add', [\App\Http\Controllers\InstanciaSorteoController::class, 'addPremio'])->name('premios.add');
+        Route::delete('{instancia}/premios/remove', [\App\Http\Controllers\InstanciaSorteoController::class, 'removePremio'])->name('premios.remove');
+    });
+
     Route::get('sorteo/list', [SorteoController::class, 'list'])->name('sorteo.list');
     Route::post('sorteo/resetear-ganadores', [SorteoController::class, 'resetearGanadores'])->name('sorteo.resetear');
-    Route::post('sorteo/{sorteo}/premios', [SorteoController::class, 'updatePremios'])->name('sorteo.updatePremios');
+    // Route::post('sorteo/{sorteo}/premios', [SorteoController::class, 'updatePremios'])->name('sorteo.updatePremios');
     Route::get('sorteo/{sorteo}', [SorteoController::class, 'show'])->name('sorteo.show');
-    Route::post('sorteo/{sorteo}/premios/add', [SorteoController::class, 'addPremio'])->name('sorteo.premios.add');
-    Route::delete('sorteo/{sorteo}/premios/remove', [SorteoController::class, 'removePremio'])->name('sorteo.premios.remove');
-    Route::patch('sorteo/{sorteo}/premios/reorder', [SorteoController::class, 'reorderPremios'])->name('sorteo.premios.reorder');
+    // Route::post('sorteo/{sorteo}/premios/add', [SorteoController::class, 'addPremio'])->name('sorteo.premios.add');
+    // Route::delete('sorteo/{sorteo}/premios/remove', [SorteoController::class, 'removePremio'])->name('sorteo.premios.remove');
+    // Route::patch('sorteo/{sorteo}/premios/reorder', [SorteoController::class, 'reorderPremios'])->name('sorteo.premios.reorder');
     Route::post('sorteo/{sorteo}/toggle-status', [SorteoController::class, 'toggleStatus'])->name('sorteo.toggleStatus');
 
     // Premios
@@ -38,6 +49,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('participantes/import', [ParticipantesController::class, 'import'])->name('participantes.import');
     Route::get('participantes/list', [ParticipantesController::class, 'list'])->name('participantes.list');
     Route::get('participantes/stats', [ParticipantesController::class, 'stats'])->name('participantes.stats');
+    Route::get('participantes/logs', [ParticipantesController::class, 'logs'])->name('participantes.logs');
+
+    // Entregas
+    Route::post('entregas', [\App\Http\Controllers\EntregaPremioController::class, 'store'])->name('entregas.store');
+    Route::get('entregas/{entrega}/download-receipt', [\App\Http\Controllers\EntregaPremioController::class, 'downloadReceipt'])->name('entregas.downloadReceipt');
 });
 
 require __DIR__ . '/settings.php';

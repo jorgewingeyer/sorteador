@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sorteos', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
-            $table->date('fecha');
-            $table->boolean('status')->default(false);
-            $table->timestamps();
+        Schema::table('ganadores', function (Blueprint $table) {
+            $table->foreignId('user_id')->nullable()->after('inscripto_id')->constrained('users')->nullOnDelete();
         });
     }
 
@@ -25,6 +21,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sorteos');
+        Schema::table('ganadores', function (Blueprint $table) {
+            $table->dropForeign(['user_id']);
+            $table->dropColumn('user_id');
+        });
     }
 };

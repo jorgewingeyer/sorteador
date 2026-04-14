@@ -29,19 +29,32 @@ abstract class CsvParticipanteTransformer extends Action
     public static function execute(array $rowByHeader, int $sorteoId): array
     {
         $dniRaw = self::sanitize($rowByHeader['dni'] ?? $rowByHeader['DNI'] ?? '');
-        $dni = str_replace('.', '', $dniRaw);
+        $dni = str_replace(['.', ' '], '', $dniRaw);
 
         $nombre = self::sanitize($rowByHeader['nombre'] ?? $rowByHeader['Nombre'] ?? '');
         $apellido = self::sanitize($rowByHeader['apellido'] ?? $rowByHeader['Apellido'] ?? '');
-        $fullName = trim($nombre.' '.$apellido);
+        
+        // Handle case where full_name is in a single column or split
+        if (empty($nombre) && empty($apellido) && isset($rowByHeader['full_name'])) {
+             $fullName = self::sanitize($rowByHeader['full_name']);
+        } else {
+             $fullName = trim($nombre.' '.$apellido);
+        }
 
-        $phone = self::sanitize($rowByHeader['tel'] ?? $rowByHeader['Tel.'] ?? $rowByHeader['telefono'] ?? '');
-        $location = self::sanitize($rowByHeader['localidad'] ?? $rowByHeader['Localidad'] ?? '');
-        $province = self::sanitize($rowByHeader['provincia'] ?? $rowByHeader['Provincia'] ?? '');
+        $phone = self::sanitize($rowByHeader['tel'] ?? $rowByHeader['Tel.'] ?? $rowByHeader['telefono'] ?? $rowByHeader['phone'] ?? '');
+        $location = self::sanitize($rowByHeader['localidad'] ?? $rowByHeader['Localidad'] ?? $rowByHeader['location'] ?? '');
+        $province = self::sanitize($rowByHeader['provincia'] ?? $rowByHeader['Provincia'] ?? $rowByHeader['province'] ?? '');
 
-        $carton = self::sanitize($rowByHeader['nro_carton'] ?? $rowByHeader['Nro. Carton'] ?? $rowByHeader['Nro. Cartón'] ?? $rowByHeader['carton'] ?? '');
-        $cartonNumber = $carton;
-
+        // Support various header names for carton number
+        // Keys are normalized in ImportParticipantesFromCSV (lowercase, no spaces, no dots, unaccented)
+        $carton = self::sanitize(
+            $rowByHeader['nro_carton'] ?? 
+            $rowByHeader['nro_cartn'] ?? // Fallback for bad encoding
+            $rowByHeader['carton'] ?? 
+            $rowByHeader['carton_number'] ?? 
+            ''
+        );
+        
         return [
             'sorteo_id' => $sorteoId,
             'dni' => $dni,
@@ -49,7 +62,7 @@ abstract class CsvParticipanteTransformer extends Action
             'phone' => $phone,
             'location' => $location,
             'province' => $province,
-            'carton_number' => $cartonNumber,
+            'carton_number' => $carton,
         ];
     }
 }

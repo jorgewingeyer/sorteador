@@ -8,35 +8,32 @@ import sorteo from "@/routes/sorteo"
 import { participantes } from "@/routes"
 import { router } from "@inertiajs/react"
 import { type SorteoItem, type SorteoListProps, type SorteoListResponse } from "@/types/sorteo"
-import { ArrowUpDown } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import SorteoController from "@/actions/App/Http/Controllers/SorteoController"
-import type { PremioItem, PremioListResponse } from "@/types/premios"
-import { GripVertical, Trash2, Plus, CheckCircle2, AlertCircle } from "lucide-react"
+import type { PremioListResponse } from "@/types/premios"
+import InstanciasList from "./InstanciasList"
+import React from "react"
 
-export default function SorteoList({ listSorteos, premios }: SorteoListProps & { premios?: PremioListResponse | null }) {
+export default function SorteoList({ listSorteos }: SorteoListProps & { premios?: PremioListResponse | null }) {
   const [data, setData] = useState<SorteoListResponse | null>(listSorteos ?? null)
   const [page, setPage] = useState<number>(listSorteos?.meta?.current_page ?? 1)
   const [perPage] = useState<number>(listSorteos?.meta?.per_page ?? 10)
-  const [sort, setSort] = useState<"fecha" | "nombre" | "created_at">("fecha")
+  const [sort, setSort] = useState<"nombre" | "created_at">("created_at")
   const [direction, setDirection] = useState<"asc" | "desc">("desc")
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const [editOpen, setEditOpen] = useState<boolean>(false)
-  const [current, setCurrent] = useState<SorteoItem | null>(null)
-  const premioItems: PremioItem[] = useMemo(() => premios?.data ?? [], [premios])
-  const [assignments, setAssignments] = useState<Array<{ premio_id: number; posicion: number; nombre: string }>>([])
-  const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [addPremioId, setAddPremioId] = useState<string>("")
-  const [addPos, setAddPos] = useState<string>("")
-  const [modalMsg, setModalMsg] = useState<string | null>(null)
-  const [modalError, setModalError] = useState<string | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+
+  const toggleRow = (id: number) => {
+    const next = new Set(expandedRows)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    setExpandedRows(next)
+  }
 
   const query = useMemo(() => ({ page, per_page: perPage, sort, direction }), [page, perPage, sort, direction])
 
@@ -69,7 +66,7 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
     }
   }, [fetchList])
 
-  const toggleSort = (column: "fecha" | "nombre" | "created_at") => {
+  const toggleSort = (column: "nombre" | "created_at") => {
     if (sort === column) {
       setDirection((d) => (d === "asc" ? "desc" : "asc"))
     } else {
@@ -81,104 +78,11 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
   const items: SorteoItem[] = data?.data ?? []
   const meta = data?.meta
 
-  const openEditor = async (item: SorteoItem) => {
-    setCurrent(item)
-    setEditOpen(true)
-    setModalMsg(null)
-    setModalError(null)
-    try {
-      const url = SorteoController.show.get({ sorteo: item.id }).url
-      const res = await fetch(url, { headers: { Accept: "application/json" } })
-      const json = await res.json() as { data?: { premios?: Array<{ id: number; nombre: string; posicion: number }> } }
-      const premioList = (json.data?.premios ?? [])
-      const rows = premioList
-        .filter((p) => typeof p.posicion === "number")
-        .sort((a, b) => (a.posicion - b.posicion))
-        .map((p) => ({ premio_id: p.id, posicion: p.posicion, nombre: p.nombre }))
-      setAssignments(rows)
-    } catch {
-      setModalError("No se pudieron cargar las asignaciones.")
-    }
-  }
-
-  const onDragStart = (idx: number) => setDragIndex(idx)
-  const onDragOver = (e: React.DragEvent) => { e.preventDefault() }
-  const onDrop = (idx: number) => {
-    if (dragIndex === null) return
-    const next = assignments.slice()
-    const [moved] = next.splice(dragIndex, 1)
-    next.splice(idx, 0, moved)
-    const resequenced = next.map((a, i) => ({ ...a, posicion: i + 1 }))
-    setAssignments(resequenced)
-    setDragIndex(null)
-  }
-
-  const addPremio = async () => {
-    setModalMsg(null)
-    setModalError(null)
-    if (!current) return
-    const premioIdNum = Number(addPremioId)
-    const posNum = Number(addPos)
-    if (!Number.isFinite(premioIdNum) || !Number.isFinite(posNum) || posNum < 1) {
-      setModalError("Completa premio y posición válidos.")
-      return
-    }
-    const def = SorteoController.addPremio.post({ sorteo: current.id })
-    router.post(def.url, { premio_id: premioIdNum, posicion: posNum }, {
-      preserveState: true,
-      preserveScroll: true,
-      onSuccess: async () => {
-        setAddPremioId("")
-        setAddPos("")
-        await openEditor(current)
-        setModalMsg("Premio agregado.")
-        window.dispatchEvent(new CustomEvent('sorteo:refresh'))
-      },
-      onError: () => setModalError("No se pudo agregar el premio."),
-    })
-  }
-
-  const removePremio = async (premio_id: number, posicion: number) => {
-    setModalMsg(null)
-    setModalError(null)
-    if (!current) return
-    const def = SorteoController.removePremio.delete({ sorteo: current.id })
-    router.post(def.url, { premio_id, posicion, _method: 'DELETE' }, {
-      preserveState: true,
-      preserveScroll: true,
-      onSuccess: async () => {
-        await openEditor(current)
-        setModalMsg("Premio eliminado.")
-        window.dispatchEvent(new CustomEvent('sorteo:refresh'))
-      },
-      onError: () => setModalError("No se pudo eliminar el premio."),
-    })
-  }
-
-  const saveOrder = async () => {
-    setModalMsg(null)
-    setModalError(null)
-    if (!current) return
-    const payload = { premios: assignments.map((a) => ({ premio_id: a.premio_id, posicion: a.posicion })), _method: 'PATCH' }
-    const def = SorteoController.reorderPremios.patch({ sorteo: current.id })
-    router.post(def.url, payload, {
-      preserveState: true,
-      preserveScroll: true,
-      onSuccess: async () => {
-        await openEditor(current)
-        setModalMsg("Orden guardado.")
-        window.dispatchEvent(new CustomEvent('sorteo:refresh'))
-      },
-      onError: () => setModalError("No se pudo guardar el orden."),
-    })
-  }
-
   const toggleStatus = async (item: SorteoItem, checked: boolean) => {
     setData((prev) => {
       if (!prev) return null
       const updated = prev.data.map((d) => {
-        if (d.id === item.id) return { ...d, status: checked }
-        if (checked && d.status) return { ...d, status: false }
+        if (d.id === item.id) return { ...d, is_active: checked }
         return d
       })
       return { ...prev, data: updated }
@@ -186,14 +90,17 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
 
     try {
         const def = SorteoController.toggleStatus.post({ sorteo: item.id })
-        router.post(def.url, { status: checked }, {
+        router.post(def.url, { is_active: checked }, {
             preserveState: true,
             preserveScroll: true,
-            onError: () => {
+            onError: (errors) => {
+                console.error("Error al cambiar estado:", errors)
+                // Revert optimistic update
                 fetchList()
             }
         })
-    } catch {
+    } catch (e) {
+        console.error("Error inesperado:", e)
         fetchList()
     }
   }
@@ -208,8 +115,22 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("fecha")}>Fecha <ArrowUpDown className="inline ml-1 size-4" /></TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("nombre")}>Nombre <ArrowUpDown className="inline ml-1 size-4" /></TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => toggleSort("nombre")}>
+                  Nombre
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                  Descripción
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => toggleSort("created_at")}>
+                  Creado
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+              </TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -217,53 +138,66 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4}>Cargando...</TableCell>
+                <TableCell colSpan={6}>Cargando...</TableCell>
               </TableRow>
             )}
             {error && !loading && (
               <TableRow>
-                <TableCell colSpan={4}>{error}</TableCell>
+                <TableCell colSpan={6}>{error}</TableCell>
               </TableRow>
             )}
             {!loading && !error && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4}>No hay sorteos disponibles.</TableCell>
+                <TableCell colSpan={6}>No hay sorteos disponibles.</TableCell>
               </TableRow>
             )}
             {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.fecha}</TableCell>
-                <TableCell>{item.nombre}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={item.status}
-                      onCheckedChange={(v) => toggleStatus(item, v)}
-                    />
-                    <Badge variant={item.estado.variant}>{item.estado.label}</Badge>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const url = participantes({ query: { sorteo_id: String(item.id) } }).url
-                      router.visit(url, { preserveScroll: true })
-                    }}
-                  >
-                    Ver
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEditor(item)}
-                    className="ml-1"
-                  >
-                    Editar Premios
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <React.Fragment key={item.id}>
+                <TableRow className={expandedRows.has(item.id) ? "border-b-0 bg-muted/50" : ""}>
+                  <TableCell>
+                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => toggleRow(item.id)}>
+                       {expandedRows.has(item.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                     </Button>
+                  </TableCell>
+                  <TableCell className="font-medium">{item.nombre}</TableCell>
+                  <TableCell>{item.descripcion}</TableCell>
+                  <TableCell>{item.created_at ? new Date(item.created_at).toLocaleDateString() : '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                         checked={item.is_active}
+                         onCheckedChange={(v) => toggleStatus(item, v)}
+                       />
+                      <Badge variant={item.is_active ? 'default' : 'secondary'}>
+                        {item.is_active ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const url = participantes({ query: { sorteo_id: String(item.id) } }).url
+                        router.visit(url, { preserveScroll: true })
+                      }}
+                    >
+                      Ver Inscriptos
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                {expandedRows.has(item.id) && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="p-0">
+                      <InstanciasList 
+                        sorteoId={item.id} 
+                        instancias={item.instancias ?? []} 
+                        limit={item.instancias_por_sorteo}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
             ))}
           </TableBody>
         </Table>
@@ -312,96 +246,6 @@ export default function SorteoList({ listSorteos, premios }: SorteoListProps & {
           </Pagination>
         )}
       </div>
-
-      <Dialog open={editOpen} onOpenChange={(v) => { setEditOpen(v); if (!v) { setAssignments([]); setModalMsg(null); setModalError(null); } }}>
-        <DialogContent className="sm:max-w-[720px]">
-          <DialogHeader>
-            <DialogTitle>Editar premios {current ? `— ${current.nombre}` : ""}</DialogTitle>
-          </DialogHeader>
-          {current && (
-            <div className="grid gap-4">
-              {modalMsg && (
-                <Alert className="border-green-200 bg-green-50 text-green-700">
-                  <CheckCircle2 className="size-4" />
-                  <AlertTitle>Éxito</AlertTitle>
-                  <AlertDescription>{modalMsg}</AlertDescription>
-                </Alert>
-              )}
-              {modalError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="size-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{modalError}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label>Orden actual</Label>
-                  {assignments.length > 0 ? (
-                    <ul className="grid gap-2 max-h-72 overflow-auto pr-1">
-                      {assignments.map((a, idx) => (
-                        <li
-                          key={`${a.premio_id}-${a.posicion}`}
-                          className="flex items-center justify-between rounded-lg border bg-muted/30 p-2 text-xs hover:bg-muted"
-                          draggable
-                          onDragStart={() => onDragStart(idx)}
-                          onDragOver={onDragOver}
-                          onDrop={() => onDrop(idx)}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <GripVertical className="size-4 text-muted-foreground" />
-                            <span className="font-medium">Pos {a.posicion}</span>
-                            <span className="truncate">— {a.nombre}</span>
-                          </div>
-                          <Button variant="ghost" size="icon" onClick={() => removePremio(a.premio_id, a.posicion)}>
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Este sorteo aún no tiene premios asignados.</p>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Agregar premio</Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={addPremioId} onValueChange={(v) => setAddPremioId(v)}>
-                      <SelectTrigger aria-label="Premio">
-                        <SelectValue placeholder="Selecciona premio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {premioItems.map((p) => (
-                          <SelectItem key={p.id} value={String(p.id)}>{p.nombre}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="Posición"
-                      value={addPos}
-                      onChange={(e) => setAddPos(e.target.value)}
-                      className="w-24"
-                    />
-                    <Button type="button" size="sm" onClick={addPremio}>
-                      <Plus className="mr-1 size-4" /> Añadir
-                    </Button>
-                  </div>
-                  <Separator className="my-2" />
-                  <p className="text-xs text-muted-foreground">Consejo: Usa “Guardar Orden” para aplicar cambios de posiciones.</p>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" onClick={saveOrder} disabled={assignments.length === 0}>Guardar Orden</Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </PageSection>
   )
 }

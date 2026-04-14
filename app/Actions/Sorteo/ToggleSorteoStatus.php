@@ -14,11 +14,11 @@ abstract class ToggleSorteoStatus extends Action
             if ($status) {
                 // If activating this sorteo, deactivate all others
                 Sorteo::where('id', '!=', $sorteo->id)
-                    ->where('status', true)
-                    ->update(['status' => false]);
+                    ->where('is_active', true)
+                    ->update(['is_active' => false]);
             }
 
-            $sorteo->status = $status;
+            $sorteo->is_active = $status;
             $sorteo->save();
 
             return $sorteo;

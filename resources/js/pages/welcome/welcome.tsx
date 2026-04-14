@@ -14,15 +14,18 @@ import './welcome.css';
 
 interface WelcomeProps {
     canRegister?: boolean;
+    instanciaSorteoId?: number | null;
+    sorteoNombre?: string | null;
+    instanciaNombre?: string | null;
 }
 
-export default function Welcome({ canRegister = true }: WelcomeProps) {
+export default function Welcome({ canRegister = true, instanciaSorteoId, sorteoNombre, instanciaNombre }: WelcomeProps) {
     const { auth } = usePage<SharedData>().props;
-    const { isDrawing, winner, showConfetti, handleDraw, resetRaffle } = useRaffle();
+    const { isDrawing, winner, showConfetti, handleDraw, resetRaffle } = useRaffle(instanciaSorteoId);
 
     return (
         <>
-            <Head title="Sorteo Lotería Chaqueña">
+            <Head title={sorteoNombre || "Sorteo Lotería Chaqueña"}>
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
                 <link
@@ -47,10 +50,14 @@ export default function Welcome({ canRegister = true }: WelcomeProps) {
                 {/* Main Content */}
                 <main className="relative z-10 max-w-5xl w-full">
                     {/* Logo and Title */}
-                    <LotteryTitle />
+                    <LotteryTitle title={sorteoNombre} subtitle={instanciaNombre} />
 
                     {/* Draw Button */}
-                    <DrawButton onClick={handleDraw} isDrawing={isDrawing} />
+                    <DrawButton 
+                        onClick={handleDraw} 
+                        isDrawing={isDrawing} 
+                        isAuthenticated={!!auth.user}
+                    />
 
                     {/* Results Section */}
                     {winner ? (

@@ -3,15 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Premio extends Model
 {
-    protected $fillable = ['nombre', 'descripcion'];
+    protected $fillable = ['nombre', 'descripcion', 'imagen_path'];
 
-    public function sorteos()
+    public function instancias(): HasMany
     {
-        return $this->belongsToMany(Sorteo::class, 'premio_sorteo')
-            ->withPivot('posicion')
-            ->withTimestamps();
+        return $this->hasMany(PremioInstancia::class);
     }
 }

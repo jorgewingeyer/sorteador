@@ -8,28 +8,35 @@ export interface SorteoEstado {
   variant: SorteoEstadoVariant
 }
 
+export interface InstanciaSorteoItem {
+  id: number
+  nombre: string
+  fecha_ejecucion: string | null
+  estado: string
+  sorteo_id: number
+  created_at: string
+}
+
 export interface SorteoItem {
   id: number
   nombre: string
-  fecha: string
-  estado: SorteoEstado
-  status: boolean
+  descripcion: string | null
+  instancias_por_sorteo: number
+  is_active: boolean
   created_at: string | null
+  instancias?: InstanciaSorteoItem[]
 }
 
 export interface SorteoQueryParams {
   page?: number
   per_page?: number
-  sort?: 'fecha' | 'nombre' | 'created_at'
+  sort?: 'nombre' | 'created_at'
   direction?: 'asc' | 'desc'
   nombre?: string
-  fecha_from?: string
-  fecha_to?: string
-  estado?: SorteoEstadoCode
 }
 
 export type SortDirection = 'asc' | 'desc'
-export type SorteoSortKey = 'fecha' | 'nombre' | 'created_at'
+export type SorteoSortKey = 'nombre' | 'created_at'
 export interface SorteoMeta {
   sort: SorteoSortKey
   direction: SortDirection

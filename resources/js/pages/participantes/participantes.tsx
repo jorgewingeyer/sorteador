@@ -2,7 +2,7 @@ import AppLayout from "@/layouts/app-layout";
 import PageWrapper from "@/components/PageWrapper";
 import { BreadcrumbItem } from "@/types";
 import ImportCSV from "./components/importcsv";
-import ParticipantesList from "./components/participantesList";
+import ParticipantesList, { ParticipanteListResponse } from "./components/participantesList";
 import ImportLogsList from "./components/ImportLogsList";
 import SelectSorteo from "./components/SelectSorteo";
 import { SorteoItem } from "@/types/sorteo";
@@ -18,7 +18,7 @@ interface Props {
     sorteoId?: string | number | null;
     sorteo?: SorteoItem;
     sorteos: SorteoItem[];
-    participantes?: any; // Will type properly in ParticipantesList
+    participantes?: ParticipanteListResponse;
 }
 
 export default function Participantes({ sorteoId, sorteo, sorteos, participantes }: Props) {
@@ -33,7 +33,7 @@ export default function Participantes({ sorteoId, sorteo, sorteos, participantes
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <PageWrapper
-                title={sorteo ? `Participantes: ${sorteo.nombre}` : "Participantes"}
+                title={sorteo?.nombre ? `Participantes: ${sorteo.nombre}` : "Participantes"}
                 description="Mantén un registro de todos los participantes en tu sorteo."
             >
                 <ImportCSV initialSorteoId={sorteoId} />

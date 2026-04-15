@@ -1,4 +1,5 @@
 import { type SharedData } from '@/types';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { Head, usePage } from '@inertiajs/react';
 import { useRaffle } from './hooks/useRaffle';
 import {
@@ -24,6 +25,7 @@ export default function Welcome({ canRegister = true, instanciaSorteoId, sorteoN
     const { isDrawing, winner, showConfetti, handleDraw, resetRaffle } = useRaffle(instanciaSorteoId);
 
     return (
+        <ThemeProvider storageKey="vite-ui-theme">
         <>
             <Head title={sorteoNombre || "Sorteo Lotería Chaqueña"}>
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -71,6 +73,7 @@ export default function Welcome({ canRegister = true, instanciaSorteoId, sorteoN
                 <Footer />
             </div>
         </>
+        </ThemeProvider>
     );
 }
 

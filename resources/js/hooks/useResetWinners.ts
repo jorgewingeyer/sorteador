@@ -11,55 +11,56 @@ interface ResetWinnersResult {
 interface UseResetWinnersReturn {
     isResetting: boolean;
     error: string | null;
+    success: ResetWinnersResult | null;
     resetWinners: (sorteoId: number | null) => Promise<void>;
 }
 
-/**
- * Custom hook para resetear ganadores
- * Encapsula la lógica de negocio siguiendo SRP
- */
+function getXsrfToken(): string {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
 export function useResetWinners(): UseResetWinnersReturn {
     const [isResetting, setIsResetting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<ResetWinnersResult | null>(null);
 
     const resetWinners = async (sorteoId: number | null) => {
         setIsResetting(true);
         setError(null);
+        setSuccess(null);
 
         try {
             const response = await fetch('/sorteo/resetear-ganadores', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                    'Accept': 'application/json',
+                    'X-XSRF-TOKEN': getXsrfToken(),
                 },
                 body: JSON.stringify({ sorteo_id: sorteoId }),
             });
 
+            const contentType = response.headers.get('content-type') ?? '';
+            const isJson = contentType.includes('application/json');
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Error al resetear ganadores');
+                const message = isJson
+                    ? (await response.json()).error ?? 'Error al resetear los ganadores.'
+                    : `Error ${response.status}: ${response.statusText}`;
+                throw new Error(message);
             }
 
             const data: ResetWinnersResult = await response.json();
-
-            // Mostrar mensaje de éxito
-            alert(data.message);
-
-            // Recargar la página para actualizar los datos
+            setSuccess(data);
             router.reload();
-        } catch (err: any) {
-            const errorMessage = err.message || 'Hubo un error al resetear los ganadores';
-            setError(errorMessage);
-            alert(errorMessage);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Hubo un error al resetear los ganadores.');
         } finally {
             setIsResetting(false);
         }
     };
 
-    return {
-        isResetting,
-        error,
-        resetWinners,
-    };
+    return { isResetting, error, success, resetWinners };
 }

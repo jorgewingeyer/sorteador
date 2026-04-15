@@ -3,7 +3,6 @@ import PageWrapper from "@/components/PageWrapper";
 import { BreadcrumbItem } from "@/types";
 import ImportCSV from "./components/importcsv";
 import ParticipantesList from "./components/participantesList";
-import { ParticipantesStats } from "./components/ParticipantesStats";
 import ImportLogsList from "./components/ImportLogsList";
 import SelectSorteo from "./components/SelectSorteo";
 import { SorteoItem } from "@/types/sorteo";
@@ -37,7 +36,6 @@ export default function Participantes({ sorteoId, sorteo, sorteos, participantes
                 title={sorteo ? `Participantes: ${sorteo.nombre}` : "Participantes"}
                 description="Mantén un registro de todos los participantes en tu sorteo."
             >
-                <ParticipantesStats sorteoId={Number(sorteoId)} />
                 <ImportCSV initialSorteoId={sorteoId} />
                 <ImportLogsList sorteoId={sorteoId} />
                 <ParticipantesList initialSorteoId={sorteoId} initialData={participantes} sorteos={sorteos} />

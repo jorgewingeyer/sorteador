@@ -3,8 +3,8 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ParticipantesController;
-use App\Http\Controllers\SorteoController;
 use App\Http\Controllers\PremioController;
+use App\Http\Controllers\SorteoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -14,14 +14,13 @@ Route::post('/api/sorteo/realizar', [SorteoController::class, 'realizar'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
     ->name('api.sorteo.realizar');
 
-
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Sorteos
     Route::get('sorteo', [SorteoController::class, 'index'])->name('sorteo');
     Route::post('sorteo', [SorteoController::class, 'store'])->name('sorteo.store');
     Route::post('sorteo/{sorteo}/instancias', [\App\Http\Controllers\InstanciaSorteoController::class, 'store'])->name('sorteo.instancias.store');
-    
+
     // Instancias de Sorteo
     Route::prefix('instancias')->name('instancias.')->group(function () {
         Route::get('{instancia}', [\App\Http\Controllers\InstanciaSorteoController::class, 'show'])->name('show');
@@ -56,4 +55,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('entregas/{entrega}/download-receipt', [\App\Http\Controllers\EntregaPremioController::class, 'downloadReceipt'])->name('entregas.downloadReceipt');
 });
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

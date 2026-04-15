@@ -1,4 +1,5 @@
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode } from 'react';
 
@@ -8,7 +9,9 @@ interface AppLayoutProps {
 }
 
 export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
-    <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
-        {children}
-    </AppLayoutTemplate>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
+            {children}
+        </AppLayoutTemplate>
+    </ThemeProvider>
 );

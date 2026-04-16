@@ -14,36 +14,39 @@ interface HeaderProps {
  */
 export function Header({ isAuthenticated, canRegister }: HeaderProps) {
     return (
-        <header className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent">
+        <header className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/50 to-transparent">
             <nav className="flex items-center justify-end gap-3 max-w-7xl mx-auto px-8 py-5">
                 {isAuthenticated ? (
                     <>
                         <Link
                             href={dashboard()}
-                            className="px-5 py-2 rounded-full text-sm font-semibold text-white border border-white/40 hover:bg-white/15 transition-all duration-200 backdrop-blur-sm"
+                            className="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 backdrop-blur-sm"
+                            style={{ color: 'white', border: '1px solid rgba(255,255,255,0.4)' }}
                         >
                             Dashboard
                         </Link>
-                        <div className="w-px h-5 bg-white/30" />
+                        <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.3)' }} />
                         <ThemeToggle />
                     </>
                 ) : (
                     <>
                         <Link
                             href={login()}
-                            className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white transition-colors duration-200"
+                            className="px-4 py-2 text-sm font-medium transition-colors duration-200"
+                            style={{ color: 'rgba(255,255,255,0.9)' }}
                         >
                             Iniciar Sesión
                         </Link>
                         {canRegister && (
                             <Link
                                 href={register()}
-                                className="px-5 py-2 rounded-full text-sm font-semibold text-white border border-white/40 hover:bg-white/15 transition-all duration-200 backdrop-blur-sm"
+                                className="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 backdrop-blur-sm"
+                                style={{ color: 'white', border: '1px solid rgba(255,255,255,0.4)' }}
                             >
                                 Registrarse
                             </Link>
                         )}
-                        <div className="w-px h-5 bg-white/30" />
+                        <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.3)' }} />
                         <ThemeToggle />
                     </>
                 )}

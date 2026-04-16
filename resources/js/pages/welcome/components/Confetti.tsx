@@ -13,7 +13,7 @@ export function Confetti({ show }: ConfettiProps) {
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-50">
+        <div className="fixed inset-0 pointer-events-none z-[60]">
             {Array.from({ length: CONFETTI_COUNT }).map((_, i) => (
                 <div
                     key={i}

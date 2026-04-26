@@ -3,7 +3,7 @@
 namespace App\Actions\Participantes;
 
 use App\Actions\Action;
-use App\Models\Ganador;
+use App\Models\ImportLog;
 use App\Models\Inscripto;
 use App\Models\InstanciaSorteo;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +13,9 @@ class CleanParticipantesAction extends Action
 {
     /**
      * Limpia y recarga la tabla de participantes_sorteo para una instancia específica.
-     * 
+     *
      * 1. Elimina registros previos de esa instancia.
-     * 2. Obtiene inscriptos únicos del sorteo padre.
+     * 2. Obtiene inscriptos únicos del sorteo padre filtrados por el último import.
      * 3. Filtra cartones que ya ganaron en CUALQUIER instancia del mismo sorteo padre.
      * 4. Inserta masivamente en participantes_sorteo.
      */
@@ -24,7 +24,17 @@ class CleanParticipantesAction extends Action
         $instancia = InstanciaSorteo::findOrFail($instanciaSorteoId);
         $sorteoId = $instancia->sorteo_id;
 
-        Log::info("Iniciando limpieza de participantes para instancia {$instanciaSorteoId} (Sorteo {$sorteoId})");
+        // Determinar el import más reciente ANTES de la transacción.
+        // Se hace aquí para evitar problemas de visibilidad de datos en SQLite
+        // con SAVEPOINTs anidados (ej: tests con RefreshDatabase).
+        $latestImportLogId = ImportLog::where('sorteo_id', $sorteoId)
+            ->orderByDesc('id')
+            ->pluck('id')
+            ->first();
+
+        Log::info("Iniciando limpieza de participantes para instancia {$instanciaSorteoId} (Sorteo {$sorteoId})", [
+            'latest_import_log_id' => $latestImportLogId,
+        ]);
 
         try {
             DB::beginTransaction();
@@ -40,12 +50,18 @@ class CleanParticipantesAction extends Action
                 ->pluck('ganadores.carton_number')
                 ->toArray();
 
-            // 3. Preparar query de inscriptos únicos excluyendo ganadores
+            // 3. Preparar query de inscriptos únicos del último CSV excluyendo ganadores.
+            // Filtramos por import_log_id más reciente para excluir participantes de importaciones
+            // antiguas que ya no aparecen en el padrón oficial actual.
             $query = Inscripto::where('sorteo_id', $sorteoId)
                 ->select('carton_number')
                 ->distinct();
 
-            if (!empty($cartonesGanadores)) {
+            if ($latestImportLogId) {
+                $query->where('import_log_id', $latestImportLogId);
+            }
+
+            if (! empty($cartonesGanadores)) {
                 $query->whereNotIn('carton_number', $cartonesGanadores);
             }
 
@@ -68,7 +84,7 @@ class CleanParticipantesAction extends Action
                 }
             }
 
-            if (!empty($batch)) {
+            if (! empty($batch)) {
                 DB::table('participantes_sorteo')->insert($batch);
                 $count += count($batch);
             }
@@ -85,7 +101,7 @@ class CleanParticipantesAction extends Action
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error en CleanParticipantesAction: " . $e->getMessage());
+            Log::error('Error en CleanParticipantesAction: '.$e->getMessage());
             throw $e;
         }
     }

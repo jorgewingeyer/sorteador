@@ -111,8 +111,9 @@ abstract class ImportParticipantesFromCSV extends Action
             }, $rawHeaders);
             Log::info('CSV import headers detected', ['headers' => $headers, 'delimiter' => $delimiter]);
 
-            $line = 1;
+            $lineNumber = 1;
             while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+                $lineNumber++;
 
                 $processed++;
                 $assoc = [];
@@ -124,6 +125,7 @@ abstract class ImportParticipantesFromCSV extends Action
                     }
                     $assoc[$header] = $value;
                 }
+                $assoc['_source_line'] = $lineNumber;
 
                 // Transform row data using CsvParticipanteTransformer
                 // Note: We need to adapt CsvParticipanteTransformer to return an array
@@ -151,11 +153,14 @@ abstract class ImportParticipantesFromCSV extends Action
             $errors[] = ['line' => $processed + 1, 'error' => $errorMessage];
         } finally {
             fclose($handle);
-            
+
+            $existingErrorLog = is_array($importLog->error_log) ? $importLog->error_log : [];
+            $mergedErrors = array_merge($existingErrorLog, $errors);
+
             // Update import log with totals
             $importLog->update([
                 'total_rows' => $processed,
-                'error_log' => $errors,
+                'error_log' => $mergedErrors,
             ]);
         }
 

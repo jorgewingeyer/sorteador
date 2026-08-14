@@ -10,6 +10,7 @@ class Inscripto extends Model
 {
     protected $fillable = [
         'sorteo_id',
+        'import_log_id',
         'full_name',
         'dni',
         'carton_number',

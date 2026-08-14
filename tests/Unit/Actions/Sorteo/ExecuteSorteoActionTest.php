@@ -3,6 +3,7 @@
 namespace Tests\Unit\Actions\Sorteo;
 
 use App\Actions\Sorteo\ExecuteSorteoAction;
+use App\Contracts\RandomizerContract;
 use App\Models\Ganador;
 use App\Models\Inscripto;
 use App\Models\InstanciaSorteo;
@@ -33,7 +34,7 @@ class ExecuteSorteoActionTest extends TestCase
             'instancia_sorteo_id' => $instancia->id,
             'premio_id' => $premio->id,
             'posicion' => 1,
-            'cantidad' => 1
+            'cantidad' => 1,
         ]);
 
         // 3. Configurar Participantes (Tabla limpia)
@@ -48,33 +49,34 @@ class ExecuteSorteoActionTest extends TestCase
         $inscripto2 = Inscripto::create(['sorteo_id' => $sorteo->id, 'dni' => '222', 'carton_number' => '1001', 'full_name' => 'Pedro']);
         $inscripto3 = Inscripto::create(['sorteo_id' => $sorteo->id, 'dni' => '333', 'carton_number' => '2001', 'full_name' => 'Maria']);
 
-        // 5. Ejecutar Sorteo
-        // Mockeamos random_int para que siempre elija el índice 0 (Cartón 1001 si está ordenado o primero en inserción)
-        // En un test real de integración es difícil predecir el random, pero verificamos la consistencia del resultado.
-        $result = ExecuteSorteoAction::execute($instancia->id);
+        // 5. Ejecutar Sorteo con mock determinista (siempre elige índice 0 → cartón 1001)
+        $mockRng = $this->createMock(RandomizerContract::class);
+        $mockRng->method('randomInt')->willReturn(0);
+
+        $action = new ExecuteSorteoAction($mockRng);
+        $result = $action->execute($instancia->id);
 
         // 6. Assert
         $this->assertArrayHasKey('carton_number', $result);
         $cartonGanador = $result['carton_number'];
 
+        // Con índice 0 y orderBy('id'), siempre gana el cartón 1001 (primer participante insertado)
+        $this->assertEquals('1001', $cartonGanador);
+
         // Verificar que se creó el registro en ganadores
         $this->assertDatabaseHas('ganadores', [
             'instancia_sorteo_id' => $instancia->id,
-            'carton_number' => $cartonGanador,
+            'carton_number' => '1001',
             'winning_position' => 1,
         ]);
 
-        // Si ganó el 1001, debe haber 2 registros de ganadores (Juan y Pedro)
-        if ($cartonGanador == '1001') {
-            $this->assertEquals(2, Ganador::where('carton_number', '1001')->count());
-        } else {
-            $this->assertEquals(1, Ganador::where('carton_number', '2001')->count());
-        }
+        // El cartón 1001 lo tienen Juan y Pedro → 2 registros de ganadores
+        $this->assertEquals(2, Ganador::where('carton_number', '1001')->count());
 
         // Verificar que el ganador fue eliminado de participantes_sorteo (para no volver a ganar en esta instancia)
         $this->assertDatabaseMissing('participantes_sorteo', [
             'instancia_sorteo_id' => $instancia->id,
-            'carton_number' => $cartonGanador
+            'carton_number' => '1001',
         ]);
     }
 
@@ -94,6 +96,8 @@ class ExecuteSorteoActionTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('No hay más premios configurados');
 
-        ExecuteSorteoAction::execute($instancia->id);
+        $mockRng = $this->createMock(RandomizerContract::class);
+        $action = new ExecuteSorteoAction($mockRng);
+        $action->execute($instancia->id);
     }
 }

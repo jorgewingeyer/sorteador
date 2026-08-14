@@ -2,6 +2,7 @@ import { type SharedData } from '@/types';
 import GuestLayout from '@/layouts/guest-layout';
 import { Head, usePage } from '@inertiajs/react';
 import { useRaffle } from './hooks/useRaffle';
+import { useEffect } from 'react';
 import {
     Confetti,
     CountdownOverlay,
@@ -12,6 +13,7 @@ import {
     LotteryTitle,
     Footer,
 } from './components';
+import { subscribeToDrawExecuted } from './utils/draw-sync';
 import './welcome.css';
 
 interface WelcomeProps {
@@ -23,7 +25,17 @@ interface WelcomeProps {
 
 export default function Welcome({ canRegister = true, instanciaSorteoId, sorteoNombre, instanciaNombre }: WelcomeProps) {
     const { auth } = usePage<SharedData>().props;
-    const { isDrawing, winner, showConfetti, countdown, handleDraw, resetRaffle } = useRaffle(instanciaSorteoId);
+    const { isDrawing, winner, showConfetti, countdown, handleDraw, handleDrawWithResult, resetRaffle } = useRaffle(instanciaSorteoId);
+
+    useEffect(() => {
+        if (!instanciaSorteoId) return;
+
+        return subscribeToDrawExecuted((payload) => {
+            if (payload.instanciaSorteoId !== instanciaSorteoId) return;
+
+            void handleDrawWithResult(payload.winner);
+        });
+    }, [handleDrawWithResult, instanciaSorteoId]);
 
     return (
         <GuestLayout>

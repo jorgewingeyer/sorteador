@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { WinnerResult } from '../types';
 import { playCountdownSound, stopCountdownAudio } from '../utils/sounds';
+import apiSorteo from '@/routes/api/sorteo';
 
 interface UseRaffleReturn {
     isDrawing: boolean;
@@ -8,6 +9,7 @@ interface UseRaffleReturn {
     showConfetti: boolean;
     countdown: number | null;
     handleDraw: () => Promise<void>;
+    handleDrawWithResult: (result: WinnerResult) => Promise<void>;
     resetRaffle: () => void;
 }
 
@@ -29,25 +31,12 @@ export function useRaffle(instanciaSorteoId?: number | null): UseRaffleReturn {
         setShowConfetti(false);
     };
 
-    const handleDraw = async () => {
-        if (!instanciaSorteoId) {
-            alert('No hay sorteo activo disponible.');
-            return;
-        }
+    const runDrawAnimation = async (resolveWinner: () => Promise<WinnerResult>) => {
+        if (isDrawing) return;
 
         setIsDrawing(true);
         setWinner(null);
         setShowConfetti(false);
-
-        // Disparar la API de forma concurrente con la cuenta regresiva
-        const apiPromise = fetch('/api/sorteo/realizar', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
-            },
-            body: JSON.stringify({ instancia_sorteo_id: instanciaSorteoId }),
-        });
 
         try {
             // Cuenta regresiva: 3 → 2 → 1 → 0 (¡YA!)
@@ -58,17 +47,9 @@ export function useRaffle(instanciaSorteoId?: number | null): UseRaffleReturn {
             }
             setCountdown(null);
 
-            // Esperar el resultado de la API (generalmente ya llegó durante el conteo)
-            const response = await apiPromise;
+            const result = await resolveWinner();
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error ?? errorData.message ?? 'Error al realizar el sorteo');
-            }
-
-            const data: WinnerResult = await response.json();
-
-            setWinner(data);
+            setWinner(result);
             setShowConfetti(true);
 
             setTimeout(() => setShowConfetti(false), 6000);
@@ -83,12 +64,43 @@ export function useRaffle(instanciaSorteoId?: number | null): UseRaffleReturn {
         }
     };
 
+    const handleDraw = async () => {
+        if (!instanciaSorteoId) {
+            alert('No hay sorteo activo disponible.');
+            return;
+        }
+
+        await runDrawAnimation(async () => {
+            const response = await fetch(apiSorteo.realizar.url(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
+                },
+                body: JSON.stringify({ instancia_sorteo_id: instanciaSorteoId }),
+            });
+
+            const payload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(payload.error ?? payload.message ?? 'Error al realizar el sorteo');
+            }
+
+            return payload as WinnerResult;
+        });
+    };
+
+    const handleDrawWithResult = async (result: WinnerResult) => {
+        await runDrawAnimation(async () => result);
+    };
+
     return {
         isDrawing,
         winner,
         showConfetti,
         countdown,
         handleDraw,
+        handleDrawWithResult,
         resetRaffle,
     };
 }

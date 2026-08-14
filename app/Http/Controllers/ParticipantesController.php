@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Actions\Participantes\GetAllParticipantes;
 use App\Actions\Participantes\ImportParticipantesFromCSV;
 use App\Http\Requests\Participantes\ImportRequest;
-use App\Models\Inscripto;
 use App\Models\ImportLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,8 +21,8 @@ class ParticipantesController extends Controller
         if ($sorteoId) {
             $sorteo = \App\Models\Sorteo::find($sorteoId);
         }
-        
-        $sorteos = \App\Models\Sorteo::orderBy('created_at', 'desc')->get(['id', 'nombre', 'created_at']);
+
+        $sorteos = \App\Models\Sorteo::orderBy('created_at', 'desc')->get();
 
         $participantes = null;
         if ($sorteoId) {
@@ -32,7 +31,7 @@ class ParticipantesController extends Controller
 
         return Inertia::render('participantes/participantes', [
             'sorteoId' => $sorteoId,
-            'sorteo' => $sorteo ? new \App\Http\Resources\SorteoResource($sorteo) : null,
+            'sorteo' => $sorteo ? (new \App\Http\Resources\SorteoResource($sorteo))->resolve() : null,
             'sorteos' => $sorteos,
             'participantes' => $participantes,
         ]);
@@ -56,13 +55,13 @@ class ParticipantesController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => $stats['status'],
-                'message' => 'Importación iniciada en segundo plano. Se están procesando ' . $stats['processed'] . ' registros.',
+                'message' => 'Importación iniciada en segundo plano. Se están procesando '.$stats['processed'].' registros.',
                 'stats' => $stats,
             ], 200, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
         }
 
         return redirect()->route('participantes', ['sorteo_id' => $validated['sorteo_id']])
-            ->with('status', 'Importación iniciada en segundo plano: ' . $stats['processed'] . ' filas en proceso.');
+            ->with('status', 'Importación iniciada en segundo plano: '.$stats['processed'].' filas en proceso.');
     }
 
     /**
@@ -98,8 +97,8 @@ class ParticipantesController extends Controller
     public function logs(Request $request): JsonResponse
     {
         $sorteoId = $request->query('sorteo_id');
-        
-        if (!$sorteoId) {
+
+        if (! $sorteoId) {
             return response()->json(['data' => []]);
         }
 
@@ -107,7 +106,7 @@ class ParticipantesController extends Controller
             ->with('user:id,name')
             ->latest()
             ->paginate(10);
-            
+
         return response()->json($logs);
     }
 }

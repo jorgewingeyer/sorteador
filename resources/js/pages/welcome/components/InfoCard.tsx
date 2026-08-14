@@ -1,20 +1,18 @@
 /**
- * Tarjeta informativa que explica el sistema de sorteo
- * Responsabilidad única: mostrar información del sistema
+ * Mensaje de estado cuando el sistema está listo para sortear
+ * Diseñado para ser legible en proyectores desde distancia
  */
 export function InfoCard() {
     return (
-        <div className="glass-card rounded-3xl p-8 md:p-12 text-center">
-            <p className="text-gray-800 text-lg md:text-xl font-medium leading-relaxed mb-4">
+        <div className="text-center mt-4">
+            <p
+                className="font-medium"
+                style={{ fontSize: 'clamp(1rem, 2vmin, 1.75rem)', color: 'rgba(255,255,255,0.7)' }}
+            >
                 El sistema seleccionará un ganador de forma{' '}
-                <span className="font-black text-red-700">completamente aleatoria</span> entre 
-                todos los numero de cartones registrados.
+                <span style={{ color: '#fde047', fontWeight: 700 }}>completamente aleatoria</span>{' '}
+                entre todos los cartones registrados
             </p>
-            {/* <p className="text-gray-600 text-sm font-medium">
-                ✓ Algoritmo criptográficamente seguro<br/>
-                ✓ Cada participante tiene las mismas probabilidades<br/>
-                ✓ Sistema certificado y auditable
-            </p> */}
         </div>
     );
 }

@@ -12,9 +12,12 @@ import { useState } from "react";
 import InstanciaPremiosForm from "./components/InstanciaPremiosForm";
 import type { PremioItem } from "@/types/premios";
 import instancias from "@/routes/instancias";
+import apiSorteo from "@/routes/api/sorteo";
 import EntregaPremioModal from "./components/EntregaPremioModal";
 import VerEntregaModal from "./components/VerEntregaModal";
 import { Badge } from "@/components/ui/badge";
+import type { WinnerResult } from "../welcome/types";
+import { broadcastDrawExecuted } from "../welcome/utils/draw-sync";
 
 interface Ganador {
     id: number;
@@ -62,12 +65,39 @@ export default function InstanciaPage({ instancia, sorteo, participantsCount, ga
         });
     };
 
-    const handleExecute = () => {
+    const handleExecute = async () => {
         if (!confirm("¿Estás seguro de ejecutar el sorteo? Se seleccionarán ganadores aleatoriamente.")) return;
         setLoading(true);
-        router.post(instancias.execute.url({ instancia: instancia.id }), {}, {
-            onFinish: () => setLoading(false)
-        });
+
+        try {
+            const response = await fetch(apiSorteo.realizar.url(), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? "",
+                },
+                body: JSON.stringify({ instancia_sorteo_id: instancia.id }),
+            });
+
+            const payload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(payload.error ?? payload.message ?? "No se pudo ejecutar el sorteo.");
+            }
+
+            broadcastDrawExecuted({
+                instanciaSorteoId: instancia.id,
+                winner: payload as WinnerResult,
+                triggeredAt: new Date().toISOString(),
+            });
+
+            router.reload({ only: ["instancia", "participantsCount", "ganadores"] });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Ocurrió un error al ejecutar el sorteo.";
+            alert(message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleEntregar = (ganador: Ganador) => {

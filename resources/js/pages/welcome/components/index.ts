@@ -1,4 +1,5 @@
 export { Confetti } from './Confetti';
+export { CountdownOverlay } from './CountdownOverlay';
 export { DrawButton } from './DrawButton';
 export { WinnerCard } from './WinnerCard';
 export { InfoCard } from './InfoCard';
